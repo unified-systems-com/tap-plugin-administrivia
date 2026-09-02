@@ -30,6 +30,7 @@ This keeps subsystem requirements close to the models and services they govern w
 ### Plugin Scope
 ----
 RID: `req-administrivia-v0-scope`
+
 Status: `Implemented`
 
 Administrivia hosts administrative pages, panels, templates, static assets, and supporting view or panel code for TAP's operator-facing UI.
@@ -49,6 +50,7 @@ Administrivia must not become a dumping ground for subsystem semantics. If a pag
 ### Hosted Surface Spec Index
 ----
 RID: `req-administrivia-v0-spec-index`
+
 Status: `Implemented`
 
 Administrivia maintains a lightweight index of administrative surfaces it hosts and points each one at its canonical owning spec.
@@ -74,6 +76,7 @@ This index is intentionally not a duplicate specification. It should answer: whe
 ### Code Layout
 ----
 RID: `req-administrivia-v0-code-layout`
+
 Status: `Implemented`
 
 Administrivia code for subsystem-specific Administrivia surfaces should live under directories named after the exact Django app or plugin package that owns the administered subsystem.
@@ -103,6 +106,7 @@ When a hosted surface needs GRIFT page or panel seeds, those seeds may live in `
 ### Administrivia Navigation
 ----
 RID: `req-administrivia-v0-navigation`
+
 Status: `Implemented`
 
 Administrivia pages should have stable TAP Web routes. Top-level Administrivia surfaces should be reachable from `/administrivia` or a future Administrivia navigation menu.
@@ -127,6 +131,7 @@ Route design should follow TAP Web page slug and parameter conventions. If a des
 ### Plugin-Contributed Administrivia Paths
 ----
 RID: `req-administrivia-v0-plugin-contrib`
+
 Status: `Backlog`
 
 Domain plugins should eventually be able to ship their own Administrivia pages under the shared `/administrivia/...` route space without moving all implementation code into the Administrivia plugin.
