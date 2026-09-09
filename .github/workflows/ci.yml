@@ -1,42 +1,27 @@
-# CI for tap-plugin-administrivia.
-#
-# A thin caller. All the logic lives in the reusable workflow in the core TAP repo
-# (`.github/workflows/plugin-ci.yml`, req-plugin-extdev-repo-ci) so every plugin repo —
-# ours and external developers' — runs the SAME admission gate, and improving it is one
-# edit in one place rather than a fan-out across a dozen repos.
-#
-# Since 2026-08-08 core is PUBLIC on the unified-systems-com org, which removed both of
-# the old silent-failure prerequisites: public reusable workflows are callable from any
-# repo (no Actions access_level sharing needed), and core can be checked out with no
-# credential at all. `harness_pat` is still plumbed through for now — retiring
-# TAP_CORE_RO_PAT is a separate, deliberate step — but a missing/expired value is no
-# longer fatal to checkout.
-#
-# `boot_profile` is intentionally omitted: the Django-free conformance job (structure +
-# requires_tap compatibility floor) is the gate here. A plugin that needs a real stack
-# ships a ci/nightly.boot.json and passes boot_profile to opt into the boot-and-test job
-# (see tap-plugin-samsite / tap-plugin-aws-core for the worked example).
+# Thin caller of core's reusable per-repo CI (req-tap-plugin-extdev-repo-ci). Two pins,
+# independent (req-tap-plugin-extdev-repo-ci-9): the `uses:` SHA pins WHICH validation
+# logic runs; the plugin's manifest `requires_tap` pins WHICH core it runs against — the
+# harness is core at the tag v<floor>, resolved by the workflow (req-tap-plugin-extdev-repo-ci-7).
+# No `harness_ref` (that is an override for the nightly and debugging, never a PR default)
+# and no `boot_profile` (retired form): the in-package tap_plugin/administrivia/boot/ci.boot.json
+# IS the opt-in, and conformance fails closed without it (req-boot-bootstrap-ci-record-6).
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
-  # Manual runs matter for a plugin repo: core can regress the plugin without a single
-  # commit landing HERE, and nothing else would re-run this gate before the nightly.
   workflow_dispatch:
 
-# Explicit least-privilege GITHUB_TOKEN (CodeQL actions/missing-workflow-permissions).
 permissions:
   contents: read
 
 jobs:
   tap:
-    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@main
+    # tap#365 / PR# 373 - tap: plugin-ci fails closed and tests the declared floor. Move
+    # this pin to the SHA of tap main once PR# 373 merges (Renovate does not track it).
+    uses: unified-systems-com/tap/.github/workflows/plugin-ci.yml@4a17b73af3be79863178e7449728b4d6a9b1be45
     with:
       plugin_slug: administrivia
-      # Pinned deliberately. `main` means "whatever core is today", which turns an
-      # unrelated core change into a surprise red here. Bump this on purpose.
-      harness_ref: main
     secrets:
       harness_pat: ${{ secrets.TAP_CORE_RO_PAT }}
