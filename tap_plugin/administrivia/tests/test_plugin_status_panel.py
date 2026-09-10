@@ -48,13 +48,31 @@ def test_panel_context_builds_rows_for_authorized_caller() -> None:
     assert {"depends_on", "required_by", "slug", "health"} <= fields
 
 
+def _names(cell: str) -> set[str]:
+    """The panel joins a direction's slugs with ", " and renders an empty one as an em dash."""
+    return set() if cell == "\u2014" else {name.strip() for name in cell.split(",") if name.strip()}
+
+
 def test_panel_bidirectional_edges_present() -> None:
+    """Every dependency the panel shows appears from BOTH ends, whatever is installed.
+
+    The roster is whatever this stack booted — under the plugin's own `ci` record that is
+    administrivia alone (#5); under a product profile it is the product's set. The invariant is
+    the same in both: if A lists B under depends_on and B is a row, B lists A under
+    required_by, and the converse. Naming a sibling (samsite, github_core) here assumed the
+    monorepo's everything-installed world and failed with KeyError when the sibling was absent.
+    """
     _authorize("tap_admin")
     ctx = PluginStatusPanelType.get_view_context(_panel_stub(), RequestFactory().get("/"))
     rows = {r["slug"]: r for r in json.loads(ctx["table_nodes_json"])}
-    # samsite depends on github_core/roscale/sigstore_core; those show samsite in required_by.
-    assert "github_core" in rows["samsite"]["depends_on"]
-    assert "samsite" in rows["github_core"]["required_by"]
+    assert "administrivia" in rows  # the panel's own plugin is always on the roster it renders
+    for slug, row in rows.items():
+        for dep in _names(row["depends_on"]):
+            if dep in rows:
+                assert slug in _names(rows[dep]["required_by"]), (slug, dep)
+        for user in _names(row["required_by"]):
+            assert user in rows, (slug, user)  # required_by is derived from installed rows only
+            assert slug in _names(rows[user]["depends_on"]), (slug, user)
 
 
 def test_panel_denies_caller_without_plugins_read() -> None:
