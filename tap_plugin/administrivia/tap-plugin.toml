@@ -1,5 +1,6 @@
 manifest_version = "0"
 plugin_version = "0.1.0"
+requires_tap = ">=0.1.5"
 slug = "administrivia"
 name = "Administrivia"
 description = "TAP administrative pages, panels, searches, and infrastructure."
