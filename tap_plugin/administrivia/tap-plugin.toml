@@ -1,5 +1,6 @@
 manifest_version = "0"
 plugin_version = "0.1.0"
+requires_tap = ">=0.1.5"
 slug = "administrivia"
 name = "Administrivia"
 description = "TAP administrative pages, panels, searches, and infrastructure."
@@ -12,3 +13,8 @@ cares-administrivia-v04 = "grift/cares-administrivia-v04.grift.json"
 batch-viewer-page = "grift/batch-viewer-page.grift.json"
 batches-list-page = "grift/batches-list-page.grift.json"
 plugins-page = "grift/plugins-page.grift.json"
+
+[[boot.records]]
+name = "ci"
+description = "RESERVED NAME (req-boot-bootstrap-ci-record): the stack this plugin's own tests run in — depends_on closure + self, offline, credential-free. The consumer flips self to editable."
+sha256 = "228ac1dabe5a40d2d80995bccf2dc3a3e088189f9724234d09265a29ae31df0b"
