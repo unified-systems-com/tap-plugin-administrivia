@@ -1,4 +1,4 @@
-{% load static %}
+{% load static %}{% load tap_time %}
 <div class="tap-panel tap-panel--cares-schedule-detail">
     {% if not panel.config.hide_header %}{% include "tap_web/panel_header.html" %}{% endif %}
 
@@ -45,7 +45,7 @@
             </div>
             <div class="tap-cares-schedule-detail__meta-row">
                 <dt>Enabled at</dt>
-                <dd>{{ schedule.enabled_at|date:"Y-m-d H:i:s"|default:"—" }}</dd>
+                <dd>{{ schedule.enabled_at|tap_localtime }}</dd>
             </div>
             <div class="tap-cares-schedule-detail__meta-row">
                 <dt>Max active runs</dt>
@@ -53,7 +53,7 @@
             </div>
             <div class="tap-cares-schedule-detail__meta-row">
                 <dt>Last schedule fired</dt>
-                <dd>{{ schedule.last_schedule_fired|date:"Y-m-d H:i:s"|default:"—" }}</dd>
+                <dd>{{ schedule.last_schedule_fired|tap_localtime }}</dd>
             </div>
         </dl>
 
@@ -105,8 +105,8 @@
                     <tr class="tap-cares-schedule-detail__history-row
                         {% if fire.status == 'FAILED' %}tap-cares-schedule-detail__history-row--err{% endif %}
                         {% if fire.status == 'SKIPPED' %}tap-cares-schedule-detail__history-row--warn{% endif %}">
-                        <td class="tap-cares-schedule-detail__slot">{{ fire.scheduled_for|date:"Y-m-d H:i" }}</td>
-                        <td class="tap-cares-schedule-detail__fired-at">{{ fire.fired_at|date:"Y-m-d H:i:s" }}</td>
+                        <td class="tap-cares-schedule-detail__slot">{{ fire.scheduled_for|tap_localtime }}</td>
+                        <td class="tap-cares-schedule-detail__fired-at">{{ fire.fired_at|tap_localtime }}</td>
                         <td>
                             {% if fire.status == "TRIGGERED" %}
                                 <span class="tap-cares-pill tap-cares-pill--ok">{{ fire.status_display|lower }}</span>
