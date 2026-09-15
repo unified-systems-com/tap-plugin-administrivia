@@ -13,6 +13,12 @@
  *
  * Spec: specs/spec-administrivia-v0.md req-administrivia-v0-plugin-taxonomy-panel.
  */
+/* global cytoscape */
+/* `cytoscape` is a browser global supplied by the vendored library, loaded from its own
+ * <script> tag before this file (the panel type declares it first in `js`). The directive
+ * is the same one tap_viz/js/panel-graph.js carries for the same global; `init` still
+ * checks it is really there before using it, because a lint directive is a promise to the
+ * linter, not a guarantee at runtime. */
 (function () {
   "use strict";
 
