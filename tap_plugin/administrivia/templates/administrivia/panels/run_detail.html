@@ -1,4 +1,4 @@
-{% load static %}
+{% load static %}{% load tap_time %}
 <div class="tap-panel tap-panel--cares-run-detail">
     {% if not panel.config.hide_header %}{% include "tap_web/panel_header.html" %}{% endif %}
 
@@ -36,15 +36,15 @@
             </div>
             <div class="tap-cares-run__meta-row">
                 <dt>Enqueued</dt>
-                <dd>{{ job.enqueued_at|date:"Y-m-d H:i:s"|default:"—" }}</dd>
+                <dd>{{ job.enqueued_at|tap_localtime }}</dd>
             </div>
             <div class="tap-cares-run__meta-row">
                 <dt>Started</dt>
-                <dd>{{ job.started_at|date:"Y-m-d H:i:s"|default:"—" }}</dd>
+                <dd>{{ job.started_at|tap_localtime }}</dd>
             </div>
             <div class="tap-cares-run__meta-row">
                 <dt>Finished</dt>
-                <dd>{{ job.finished_at|date:"Y-m-d H:i:s"|default:"—" }}</dd>
+                <dd>{{ job.finished_at|tap_localtime }}</dd>
             </div>
             <div class="tap-cares-run__meta-row">
                 <dt>Duration</dt>

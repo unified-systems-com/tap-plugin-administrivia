@@ -1,0 +1,215 @@
+/* Plugin Taxonomy panel styles (req-administrivia-v0-plugin-taxonomy-panel).
+ *
+ * The graph itself is styled inside Cytoscape (plugin_taxonomy.js); this file styles the
+ * chrome around it — the stat bar, the stage, the legend, and the "not drawn" disclosure.
+ *
+ * The legend swatches deliberately mirror the Cytoscape stylesheet's colours and border
+ * styles. If one moves, move the other: a legend that has drifted from the drawing is a
+ * declaration that exists and is false.
+ */
+
+.tap-panel--plugin-taxonomy {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    color: #334155;
+    font-size: 13px;
+}
+
+.tap-tax__error {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 14px 16px;
+    background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; color: #7f1d1d;
+}
+.tap-tax__error-mark {
+    flex: none; width: 18px; height: 18px; border-radius: 50%;
+    background: #dc2626; color: #fff; font-weight: 700; font-size: 12px; line-height: 18px; text-align: center;
+}
+.tap-tax__empty {
+    padding: 14px 16px;
+    background: #f8fafc; border: 1px dashed #e2e8f0; border-radius: 8px;
+    color: #94a3b8; font-size: 12.5px; font-style: italic; line-height: 1.6;
+}
+.tap-tax__empty a { color: #1d4ed8; }
+
+/* THIRD STATE — the declarations could not be read. Distinct from the empty state above:
+   a blank canvas looks the same either way, and only one of them says something about the
+   plugin (#12). */
+.tap-tax__unobservable {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 14px 16px;
+    background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;
+    color: #92400e; font-size: 12.5px; line-height: 1.6;
+}
+.tap-tax__unobservable-mark {
+    flex: none; width: 18px; height: 18px; border-radius: 50%;
+    background: #d97706; color: #fff; font-weight: 700; font-size: 12px; line-height: 18px; text-align: center;
+}
+
+/* ---------- stat bar ---------- */
+.tap-tax__bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.tap-tax__stat { color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+.tap-tax__stat strong { color: #1e293b; font-size: 14px; font-weight: 650; }
+.tap-tax__stat--foreign strong { color: #6d43ff; }
+.tap-tax__btn {
+    padding: 3px 11px;
+    border: 1px solid #cbd5e1; border-radius: 6px;
+    background: #f8fafc; color: #475569;
+    font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.tap-tax__btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+/* A real focus ring: this control is reachable by keyboard and must show it. */
+.tap-tax__btn:focus-visible {
+    outline: none;
+    border-color: #64748b;
+    box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.28);
+}
+.tap-tax__btn.is-active { background: #1e293b; border-color: #1e293b; color: #ffffff; }
+.tap-tax__btn.is-active:hover { background: #334155; border-color: #334155; }
+/* The first button after the stats claims the free space, so the group sits right. */
+.tap-tax__bar .tap-tax__btn:not(.tap-tax__btn--full) { margin-left: auto; }
+.tap-tax__bar .tap-tax__btn--full + .tap-tax__btn { margin-left: 0; }
+
+/* ---------- stage ---------- */
+.tap-tax__stage {
+    position: relative;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background:
+        radial-gradient(circle at 1px 1px, #e8e8e4 1px, transparent 0) 0 0 / 18px 18px,
+        #fbfbfa;
+    overflow: hidden;
+}
+.tap-tax__canvas { width: 100%; height: 100%; }
+
+/* Full screen. The STAGE is the fullscreened element, so the legend comes with it — the
+   graph is only readable with the key to its colours and line styles, and that is more
+   true at full size, not less. The inline `height` the panel config set is overridden:
+   full screen means the whole viewport.
+   `:fullscreen` covers the browser's own styling hook; the class is set from the
+   `fullscreenchange` event so the two never disagree. */
+.tap-tax__stage--full,
+.tap-tax__stage:fullscreen {
+    height: 100vh !important;
+    width: 100vw;
+    border-radius: 0;
+    border: 0;
+}
+/* At full size the legend stops being an overlay and becomes a bar.
+   As a floating box it sat on top of whatever the layout put in the bottom-left corner —
+   on the zizmor graph, squarely over a node. A key that hides the thing it is explaining is
+   worse than no key. So in full screen the stage becomes a flex column: the canvas takes the
+   space that is left and cytoscape is resized into it, the legend spans the width underneath,
+   and nothing overlaps anything. It also gets bigger, which is the point of full screen. */
+.tap-tax__stage--full,
+.tap-tax__stage:fullscreen {
+    display: flex;
+    flex-direction: column;
+}
+.tap-tax__stage--full .tap-tax__canvas,
+.tap-tax__stage:fullscreen .tap-tax__canvas {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+}
+.tap-tax__stage--full .tap-tax__legend,
+.tap-tax__stage:fullscreen .tap-tax__legend {
+    position: static;
+    flex: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 22px;
+    max-width: none;
+    padding: 12px 22px;
+    border: 0;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #ffffff;
+    font-size: 12.5px;
+}
+.tap-tax__stage--full .tap-tax__legend-h,
+.tap-tax__stage:fullscreen .tap-tax__legend-h { font-size: 11px; margin-right: 4px; }
+.tap-tax__stage--full .tap-tax__swatch,
+.tap-tax__stage:fullscreen .tap-tax__swatch { width: 18px; height: 13px; }
+
+/* The way out. A real button, inside the stage — the bar's button is outside the
+   fullscreened subtree and cannot be reached once full screen starts, so this is the only
+   honest place for it. Escape still works and is named on the control rather than left to
+   be discovered. */
+.tap-tax__exit {
+    position: absolute;
+    top: 16px; right: 20px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tap-tax__exit:hover { background: #ffffff; border-color: #94a3b8; }
+.tap-tax__exit:focus-visible {
+    outline: none;
+    border-color: #64748b;
+    box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.28);
+}
+.tap-tax__esc {
+    padding: 1px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+.tap-tax__stage--full .tap-tax__exit,
+.tap-tax__stage:fullscreen .tap-tax__exit { display: inline-flex; }
+
+/* ---------- legend ---------- */
+.tap-tax__legend {
+    position: absolute;
+    left: 10px; bottom: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 9px 11px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07);
+    font-size: 11px;
+    max-width: 260px;
+}
+.tap-tax__legend-h {
+    color: #94a3b8; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+}
+.tap-tax__legend-item { display: flex; align-items: center; gap: 7px; color: #475569; cursor: help; }
+.tap-tax__swatch { flex: none; width: 15px; height: 11px; border-radius: 3px; border: 1.5px solid #334155; background: #e2e8f0; }
+.tap-tax__swatch--own { background: #e2e8f0; border-color: #334155; }
+.tap-tax__swatch--foreign { background: #ece9fe; border-color: #7c5cff; }
+.tap-tax__swatch--observed { background: #e2e8f0; border-color: #334155; }
+.tap-tax__swatch--never_observed { background: #f5f3ef; border-style: dashed; border-color: #b45309; }
+.tap-tax__swatch--not_observable { background: #fafafa; border-style: dotted; border-color: #cbd5e1; }
+
+/* ---------- not-drawn disclosure ---------- */
+.tap-tax__unplaced {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;
+    color: #92400e; font-size: 12px; line-height: 1.6;
+}
+.tap-tax__unplaced ul { margin: 6px 0 6px 18px; padding: 0; list-style: disc; }
+.tap-tax__unplaced code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; background: #fef3c7; border-radius: 3px; padding: 0 4px;
+}

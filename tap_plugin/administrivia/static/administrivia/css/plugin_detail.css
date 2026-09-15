@@ -1,0 +1,342 @@
+/* Plugin Detail panel styles (req-administrivia-v0-plugin-detail-panel).
+ *
+ * Slate palette per TAP convention. The panel paints an explicit white sheet with a
+ * border: the app canvas is taupe (#f1f0ec), and a panel with no ground of its own
+ * dissolves into it (the complaint in issue #8).
+ *
+ * The three count states each get their own treatment and they are NOT interchangeable:
+ *   .tap-pd__count        a real number        slate, tabular
+ *   .tap-pd__never        declared, never used amber, dashed underline
+ *   .tap-pd__unobservable could not be read    slate-400, dotted underline, italic
+ * A reader must be able to tell "zero" from "we did not look" at a glance.
+ */
+
+.tap-panel--plugin-detail {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 22px 24px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    color: #334155;
+    font-size: 13px;
+}
+
+/* ---------- error ---------- */
+.tap-pd__error {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    color: #7f1d1d;
+}
+.tap-pd__error-mark {
+    flex: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #dc2626;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
+}
+
+/* ---------- header ---------- */
+.tap-pd__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.tap-pd__ident { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.tap-pd__name { margin: 0; font-size: 21px; font-weight: 650; color: #0f172a; letter-spacing: -0.01em; }
+.tap-pd__slug {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+.tap-pd__pills { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ---------- pills (shared across sections) ---------- */
+.tap-pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-transform: lowercase;
+    white-space: nowrap;
+}
+.tap-pill--ok      { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+.tap-pill--err     { background: #fef2f2; border: 1px solid #fca5a5; color: #7f1d1d; }
+.tap-pill--warn    { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+.tap-pill--neutral { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; }
+.tap-pill--soft    { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 500; }
+
+/* ---------- meta ---------- */
+.tap-pd__meta { margin: 14px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 20px; }
+.tap-pd__meta-row { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.tap-pd__meta-row dt { flex: none; width: 88px; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.tap-pd__meta-row dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.tap-pd__meta code, .tap-pd__slug, .tap-pd__src, .tap-pd__sha, .tap-pd__end {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+.tap-pd__commit { margin-left: 6px; color: #94a3b8; font-size: 11px; font-variant-numeric: tabular-nums; }
+.tap-pd__note {
+    margin: 12px 0 0;
+    padding: 8px 12px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    color: #92400e;
+    font-size: 12px;
+}
+
+/* ---------- sections ---------- */
+.tap-pd__section { margin-top: 24px; }
+.tap-pd__h {
+    margin: 0 0 2px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #475569;
+}
+.tap-pd__h4 { margin: 0 0 8px; font-size: 12px; font-weight: 650; color: #475569; }
+.tap-pd__n {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+/* Heading row that carries a per-table filter on its right. Wraps on a narrow panel so
+   the box drops under the heading rather than crushing it. */
+.tap-pd__section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.tap-pd__section-head .tap-pd__h { margin-bottom: 0; }
+.tap-pd__filter { display: flex; align-items: baseline; gap: 8px; }
+.tap-pd__filter-input {
+    width: 190px;
+    max-width: 100%;
+    padding: 3px 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.tap-pd__filter-input::placeholder { color: #94a3b8; }
+.tap-pd__filter-input:focus {
+    outline: none;
+    border-color: #64748b;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.18);
+}
+/* Live count — silent until something is actually filtered. */
+.tap-pd__filter-count {
+    color: #64748b;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+/* A filter that matches nothing says so in the table it emptied. */
+.tap-pd__none {
+    padding: 14px 12px !important;
+    color: #94a3b8;
+    font-size: 12px;
+    font-style: italic;
+    text-align: center;
+}
+
+.tap-pd__sub { margin: 0 0 10px; color: #94a3b8; font-size: 12px; line-height: 1.5; max-width: 72ch; }
+.tap-pd__sub code { font-size: 11px; }
+.tap-pd__empty {
+    margin: 0;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px dashed #e2e8f0;
+    border-radius: 6px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-style: italic;
+}
+/* THIRD STATE: a section that could not be read.
+   Deliberately unlike the empty state (grey, quiet, italic). This one is amber and marked,
+   because "we could not look" is a different claim from "there is nothing here" and the two
+   must never be mistaken for each other at a glance (#12, #13). */
+.tap-pd__unreadable {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 0;
+    padding: 10px 13px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.tap-pd__unreadable-mark {
+    flex: none;
+    width: 17px; height: 17px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: #d97706;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+}
+/* A count that is not known renders as "?", never as 0. */
+.tap-pd__n--unknown { background: #fef3c7; color: #b45309; cursor: help; }
+
+.tap-pd__cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.tap-pd__col { min-width: 0; }
+
+/* ---------- surfaces ---------- */
+.tap-pd__surfaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.tap-pd__surface {
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.tap-pd__surface-label { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.tap-pd__surface-count { font-size: 18px; font-weight: 650; color: #1e293b; font-variant-numeric: tabular-nums; }
+.tap-pd__surface-slash { color: #cbd5e1; margin: 0 2px; font-weight: 400; }
+.tap-pd__surface--gap { background: #fffbeb; border-color: #fcd34d; }
+.tap-pd__surface--gap .tap-pd__surface-count { color: #b45309; }
+.tap-pd__surface-gap { color: #b45309; font-size: 11px; font-weight: 600; }
+.tap-pd__unmeasured { font-size: 12px; font-weight: 500; font-style: italic; color: #94a3b8; }
+
+/* ---------- dependencies ---------- */
+.tap-pd__deps { list-style: none; margin: 0; padding: 0; }
+.tap-pd__dep { padding: 7px 0; border-bottom: 1px solid #f1f5f9; }
+.tap-pd__dep:last-child { border-bottom: 0; }
+.tap-pd__dep-link { color: #1d4ed8; text-decoration: none; font-weight: 600; }
+.tap-pd__dep-link:hover { text-decoration: underline; }
+.tap-pd__dep-ver { margin-left: 6px; color: #94a3b8; font-size: 11px; font-variant-numeric: tabular-nums; }
+.tap-pd__dep-note { margin: 3px 0 0; color: #94a3b8; font-size: 11.5px; line-height: 1.5; }
+.tap-pd__warn {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.tap-pd__warn code { background: #fef3c7; border-radius: 3px; padding: 0 4px; }
+.tap-pd__plain { list-style: none; margin: 0; padding: 0; }
+.tap-pd__plain li { padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+.tap-pd__plain li:last-child { border-bottom: 0; }
+.tap-pd__plain code { color: #64748b; margin-left: 6px; }
+
+/* ---------- tables ---------- */
+.tap-pd__table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
+.tap-pd__table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tap-pd__table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+.tap-pd__table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.tap-pd__table tbody tr:last-child td { border-bottom: 0; }
+.tap-pd__table tbody tr:hover { background: #f8fafc; }
+.tap-pd__table a { color: #1d4ed8; text-decoration: none; }
+.tap-pd__table a:hover { text-decoration: underline; }
+.tap-pd__num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Type descriptions run to several hundred characters. Clamped to three lines so a table
+   of five edge types stays scannable; the full text is in the element's `title`, and the
+   whole string is what the filter matches — displayed and searched agree. */
+.tap-pd__desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 11.5px;
+    line-height: 1.45;
+    margin-top: 2px;
+    max-width: 78ch;
+}
+.tap-pd__row--never td { background: #fffdf5; }
+.tap-pd__row--unobservable td { background: #fafafa; }
+
+/* ---------- the three count states ---------- */
+.tap-pd__count { font-weight: 650; color: #1e293b; }
+.tap-pd__never {
+    color: #b45309;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-bottom: 1px dashed #fcd34d;
+    cursor: help;
+}
+.tap-pd__unobservable {
+    color: #94a3b8;
+    font-size: 11.5px;
+    font-style: italic;
+    border-bottom: 1px dotted #cbd5e1;
+    cursor: help;
+}
+
+/* ---------- edge endpoints ---------- */
+.tap-pd__ends { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tap-pd__end-group { display: flex; gap: 4px; flex-wrap: wrap; }
+.tap-pd__end {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: #475569;
+    font-size: 11.5px;
+}
+.tap-pd__arrow { color: #cbd5e1; font-size: 14px; }
+
+/* ---------- collector cards ---------- */
+.tap-pd__cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.tap-pd__card { padding: 11px 13px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
+.tap-pd__card-title { display: block; color: #1d4ed8; font-weight: 650; text-decoration: none; }
+.tap-pd__card-title:hover { text-decoration: underline; }
+.tap-pd__card-key { display: block; margin: 3px 0 8px; color: #94a3b8; font-size: 11px; overflow-wrap: anywhere; }
+.tap-pd__card-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tap-pd__when, .tap-pd__runs { color: #94a3b8; font-size: 11px; font-variant-numeric: tabular-nums; }
+.tap-pd__src { color: #94a3b8; font-size: 11px; overflow-wrap: anywhere; }
+.tap-pd__sha { color: #94a3b8; }

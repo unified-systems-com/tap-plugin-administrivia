@@ -1,4 +1,4 @@
-{% load static %}
+{% load static %}{% load tap_time %}
 <div class="tap-panel tap-panel--cares-collector-detail">
     {% if not panel.config.hide_header %}{% include "tap_web/panel_header.html" %}{% endif %}
 
@@ -129,11 +129,11 @@
                 </div>
                 <div>
                     <span class="tap-cares-detail__latest-label">Started</span>
-                    {{ latest_run.started_at|date:"Y-m-d H:i:s"|default:"—" }}
+                    {{ latest_run.started_at|tap_localtime }}
                 </div>
                 <div>
                     <span class="tap-cares-detail__latest-label">Finished</span>
-                    {{ latest_run.finished_at|date:"Y-m-d H:i:s"|default:"—" }}
+                    {{ latest_run.finished_at|tap_localtime }}
                 </div>
                 <div>
                     <span class="tap-cares-detail__latest-label">Duration</span>
@@ -186,9 +186,9 @@
                                 <span class="tap-cares-pill tap-cares-pill--neutral">{{ run.status_display }}</span>
                             {% endif %}
                         </td>
-                        <td>{{ run.enqueued_at|date:"Y-m-d H:i:s"|default:"—" }}</td>
-                        <td>{{ run.started_at|date:"Y-m-d H:i:s"|default:"—" }}</td>
-                        <td>{{ run.finished_at|date:"Y-m-d H:i:s"|default:"—" }}</td>
+                        <td>{{ run.enqueued_at|tap_localtime }}</td>
+                        <td>{{ run.started_at|tap_localtime }}</td>
+                        <td>{{ run.finished_at|tap_localtime }}</td>
                         <td>{{ run.duration|default:"—" }}</td>
                         <td><code class="tap-cares-detail__task-result">{{ run.task_result_id|default:"—" }}</code></td>
                         <td>

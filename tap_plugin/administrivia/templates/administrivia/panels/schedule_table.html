@@ -1,4 +1,4 @@
-{% load static %}
+{% load static %}{% load tap_time %}
 <div class="tap-panel tap-panel--cares-schedules"
      hx-get="/panel/{{ panel.slug }}--{{ panel.entity_id }}/"
      hx-trigger="every 5s"
@@ -58,7 +58,7 @@
                             {% else %}
                                 <span class="tap-cares-pill tap-cares-pill--neutral">{{ row.latest_fire.status_display|lower }}</span>
                             {% endif %}
-                            <span class="tap-cares-schedules__last-fire-ts">{{ row.latest_fire.scheduled_for|date:"H:i" }}</span>
+                            <span class="tap-cares-schedules__last-fire-ts">{{ row.latest_fire.scheduled_for|tap_localtime }}</span>
                             {% if row.latest_fire.missed_count %}<span class="tap-cares-schedules__missed" title="Slots missed before this fire">+{{ row.latest_fire.missed_count }} missed</span>{% endif %}
                         {% else %}
                             <span class="tap-cares-pill tap-cares-pill--idle">never fired</span>

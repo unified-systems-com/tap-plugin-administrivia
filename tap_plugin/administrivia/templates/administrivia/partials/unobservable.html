@@ -1,0 +1,18 @@
+{% comment %}
+A section that could not be read (req-administrivia-v0-plugin-facts-4, #12, #13).
+
+This is the THIRD state, and it exists because the other two look identical from outside:
+an empty list is what you get both when a plugin ships no collectors and when the collector
+query failed. Rendering either as "ships no collectors" states, to an operator, a fact
+nobody established.
+
+Deliberately NOT styled like the empty state — amber and marked, not grey and quiet, so it
+reads as "we could not look" rather than as "there is nothing here".
+
+Expects `reason` (why it could not be read) and `noun` (what it was).
+{% endcomment %}
+<p class="tap-pd__unreadable">
+    <span class="tap-pd__unreadable-mark" aria-hidden="true">?</span>
+    <span><strong>{{ noun }} not observable.</strong> This section is blank because {{ reason }} &mdash;
+    not because there is nothing here. Absence of evidence is not evidence of absence.</span>
+</p>
