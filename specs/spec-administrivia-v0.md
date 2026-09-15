@@ -267,8 +267,17 @@ custom view — this spec chooses **query parameters**, matching the existing
 core work, and it should be taken for the whole page system rather than for this one page.
 
 The Page is seeded `discoverable: false`: a per-item detail page is reached from its parent table,
-not from navigation. The page mounts two panel instances — the detail panel above, the taxonomy
-panel below.
+not from navigation.
+
+**Section order is the page's, not a panel's.** The reader meets identity and surfaces, then the
+TAXONOMY DIAGRAM, then dependencies and everything else. The diagram is what makes the page worth
+opening, so it sits above the fold rather than below two dependency tables. The page expresses that
+by mounting `plugin_detail` **twice** — each instance naming the sections it renders in its
+`sections` config (head: `identity`, `surfaces`; body: `dependencies`, `types`, `activity`,
+`manifest`) — with the taxonomy panel in the row between them. The panel type therefore never needs
+to know a graph exists; a page that wants a different arrangement changes its own layout and
+nothing else. Both detail instances set `hide_header`: the identity block is the page's heading,
+and a "Plugin Detail" bar above it was redundant.
 
 The `plugin_status` table gains a link formatter on its `Plugin` column pointing at this route, so
 a row is no longer a dead end.
@@ -282,6 +291,8 @@ a row is no longer a dead end.
 | req-administrivia-v0-plugin-detail-page-3 | Out Of Navigation | Implemented | The page is seeded `discoverable: false` and does not appear in nav or the palette. | |
 | req-administrivia-v0-plugin-detail-page-4 | Routing Gap Recorded | Implemented | The spec states why the route is a query parameter rather than a path segment. | |
 | req-administrivia-v0-plugin-detail-page-5 | Missing Slug Is A State | Implemented | The page with no `slug`, or an unknown one, renders a helpful empty state rather than an error page. | |
+| req-administrivia-v0-plugin-detail-page-6 | Diagram Above The Fold | Implemented | The rendered order is identity → surfaces → taxonomy diagram → dependencies → the rest. | |
+| req-administrivia-v0-plugin-detail-page-7 | Order Owned By The Page | Implemented | The order is expressed in the page layout and instance `sections` config, not hard-coded in a panel template. | |
 
 ### Plugin Detail Panel
 ----
@@ -319,6 +330,24 @@ Sections, in order:
 
 Every section renders an explicit empty state; a plugin that declares no edges says so.
 
+**Sections are configurable.** `config.sections` names which of the six sections
+(`identity`, `surfaces`, `dependencies`, `types`, `activity`, `manifest`) an instance renders;
+unknown names are ignored and canonical order is always preserved. An instance with no `sections`
+renders all six — a panel dropped on a page with no configuration must still be complete, never
+silently blank. This is what lets the page interleave the taxonomy diagram between `surfaces` and
+`dependencies` without the panel knowing the diagram exists.
+
+**The node-type and edge-type tables carry a text filter.** Rows are narrowed as the reader types,
+client-side over rows the server already sent — it never fetches, sorts, or changes what a row
+says. The shape is deliberately the one `git_serious`'s query pack already uses
+(`spec-git-serious-query-pack`): a pre-lowercased `data-text` attribute per row, an `indexOf`
+match, a live "N of M shown" count, and an explicit empty row. An empty result is therefore a
+STATED state rather than a blank table — the same three-states discipline the counts follow.
+Each table's box is scoped to its own section, and each `data-text` is derived from exactly what
+its row DISPLAYS (`TypeFact.search_text`): a filter that matched on text the reader cannot see
+would be lying about what it looked at, so edge descriptions are rendered (clamped, full text on
+hover) rather than searched invisibly.
+
 #### Acceptance Criteria
 
 | ACID | Title | Status | Description | Notes |
@@ -330,6 +359,10 @@ Every section renders an explicit empty state; a plugin that declares no edges s
 | req-administrivia-v0-plugin-detail-panel-5 | Types With Counts | Implemented | Node and edge types render with their count state and, for edges, their endpoints. | |
 | req-administrivia-v0-plugin-detail-panel-6 | Activity | Implemented | Collectors with last-run status, and recent batches, render for a plugin that has them. | |
 | req-administrivia-v0-plugin-detail-panel-7 | Empty States | Implemented | Every section renders an explicit empty state rather than an empty container. | |
+| req-administrivia-v0-plugin-detail-panel-8 | Configurable Sections | Implemented | `config.sections` selects which sections an instance renders; an unconfigured instance renders all of them in canonical order. | |
+| req-administrivia-v0-plugin-detail-panel-9 | Per-Table Filter | Implemented | The node-type and edge-type tables each narrow by text as the reader types, independently of each other. | |
+| req-administrivia-v0-plugin-detail-panel-10 | Filter States Its Result | Implemented | A live "N of M shown" count and an explicit empty row mean a filter matching nothing is a stated state, not a blank table. | |
+| req-administrivia-v0-plugin-detail-panel-11 | Filter Matches What Is Shown | Implemented | Each row's searchable text is derived from what that row displays; the filter never matches on text the reader cannot see. | |
 
 ### Plugin Taxonomy Panel
 ----
@@ -375,6 +408,33 @@ Drawing rules:
 - A legend names every visual distinction the panel makes. A reader must not have to infer that
   dashed means never-observed.
 
+##### Full screen
+
+The panel carries a control that takes the graph full screen, because a dictionary of any size
+stops being readable in a 620px box.
+
+- The **stage** is the fullscreened element, not the canvas, so the **legend travels with the
+  graph**. At full size the legend is worth more, not less: it is what makes the violet
+  cross-plugin endpoints and the dashed never-observed types readable. In full screen it stops
+  being a floating overlay and becomes a bar beneath the canvas — as an overlay it sat on top of
+  whatever the layout put in that corner, and a key that hides the thing it explains is worse than
+  no key.
+- **Cytoscape is resized and re-fitted in BOTH directions.** It caches its container's box, so
+  without `cy.resize()` it draws into a stale rectangle — clipped entering, marooned in a corner
+  leaving. The resize happens two animation frames after the change, because measuring in the same
+  tick reads the old box.
+- **State follows the document, never the click.** Every label, `aria-pressed` and class change
+  hangs off `fullscreenchange`. `requestFullscreen()` returns a promise that can reject, and
+  Escape leaves full screen without touching the button at all; a button claiming a state the
+  document is not in is a small lie.
+- **The way out lives inside the stage.** The bar's button is outside the fullscreened subtree and
+  is unreachable once full screen starts, so an "Exit full screen" label up there would name a
+  control nobody can press. A real exit button sits inside the stage, visible only in full screen,
+  and names the Escape key beside itself.
+- The control ships hidden and is revealed only where the Fullscreen API is actually available. A
+  control that cannot do the thing it names is worse than no control. It carries a visible focus
+  ring and an `aria-label` that states the action its current state affords.
+
 #### Acceptance Criteria
 
 | ACID | Title | Status | Description | Notes |
@@ -386,6 +446,11 @@ Drawing rules:
 | req-administrivia-v0-plugin-taxonomy-panel-5 | Legend Present | Implemented | A legend names every visual distinction the graph makes. | |
 | req-administrivia-v0-plugin-taxonomy-panel-6 | Not Built On The Viz Graph Panel | Implemented | The panel synthesizes its own element list and does not depend on `tap_viz`'s search-bound graph panel. | |
 | req-administrivia-v0-plugin-taxonomy-panel-7 | Empty Declaration State | Implemented | A plugin that declares no types renders an explicit empty state, not an empty canvas. | |
+| req-administrivia-v0-plugin-taxonomy-panel-8 | Full Screen | Implemented | A control takes the graph full screen and back, and the graph is re-measured and re-fitted in both directions. | |
+| req-administrivia-v0-plugin-taxonomy-panel-9 | Legend Travels And Does Not Occlude | Implemented | The legend is inside the fullscreened element and, at full size, occupies a bar rather than overlaying the graph. | |
+| req-administrivia-v0-plugin-taxonomy-panel-10 | Button State Is Truthful | Implemented | Label, `aria-pressed` and styling are driven by `fullscreenchange`, so a rejected request or an Escape exit cannot leave the control claiming the wrong state. | |
+| req-administrivia-v0-plugin-taxonomy-panel-11 | Reachable Way Out | Implemented | An exit control lives inside the fullscreened element, is revealed only in full screen, and names the Escape key. | |
+| req-administrivia-v0-plugin-taxonomy-panel-12 | Unsupported Means Absent | Implemented | The control stays hidden where the Fullscreen API is unavailable rather than offering an action it cannot perform. | |
 
 ## Out Of Scope (v0)
 

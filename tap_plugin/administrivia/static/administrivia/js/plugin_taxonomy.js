@@ -148,7 +148,109 @@
     var refit = document.querySelector('[data-tax-refit="' + panelId + '"]');
     if (refit) { refit.addEventListener("click", function () { cy.fit(undefined, 40); }); }
 
+    wireFullscreen(panelId, cy);
+
     mount.setAttribute("data-tax-ready", "1");
+  }
+
+  /* ---------------------------------------------------------------------------
+   * Full screen
+   *
+   * Two things make this more than a one-liner:
+   *
+   *  - Cytoscape caches its container's box. After the viewport changes in EITHER
+   *    direction it must be told (`cy.resize()`), then re-fitted, or it draws into a
+   *    stale rectangle — nodes clipped on the way in, marooned in a corner on the way
+   *    out. Both directions, not just entering.
+   *  - The button's label must follow the DOCUMENT, not the click. `requestFullscreen()`
+   *    returns a promise that can reject (a permissions policy, a user gesture that did
+   *    not count), and Escape leaves full screen without touching the button at all. So
+   *    every label change hangs off `fullscreenchange`, and the click only ever asks.
+   * ------------------------------------------------------------------------- */
+
+  function fsElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function fsRequest(el) {
+    var fn = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!fn) { return null; }
+    try { return fn.call(el); } catch (e) { return null; }
+  }
+
+  function fsExit() {
+    var fn = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!fn) { return null; }
+    try { return fn.call(document); } catch (e) { return null; }
+  }
+
+  function fsSupported(el) {
+    return !!(
+      (el.requestFullscreen || el.webkitRequestFullscreen) &&
+      (document.fullscreenEnabled === undefined || document.fullscreenEnabled)
+    );
+  }
+
+  function wireFullscreen(panelId, cy) {
+    var stage = document.querySelector('[data-tax-stage="' + panelId + '"]');
+    var btn = document.querySelector('[data-tax-fullscreen="' + panelId + '"]');
+    if (!stage || !btn) { return; }
+
+    // The button ships hidden and is revealed only where the API is really available —
+    // a control that cannot do the thing it names is worse than no control.
+    if (!fsSupported(stage)) { return; }
+    btn.hidden = false;
+
+    var label = btn.querySelector("[data-tax-fullscreen-label]");
+    // The exit control lives INSIDE the stage: the bar button is outside the fullscreened
+    // subtree and is unreachable while full screen is active, so it cannot be the way out.
+    var exit = stage.querySelector('[data-tax-exit="' + panelId + '"]');
+
+    function isFull() { return fsElement() === stage; }
+
+    function paint() {
+      var full = isFull();
+      stage.classList.toggle("tap-tax__stage--full", full);
+      btn.classList.toggle("is-active", full);
+      btn.setAttribute("aria-pressed", full ? "true" : "false");
+      btn.setAttribute("aria-label", full ? "Exit full screen" : "Enter full screen");
+      btn.setAttribute("title", full ? "Leave full screen (or press Escape)" : "Show the taxonomy full screen");
+      if (label) { label.textContent = full ? "Exit full screen" : "Full screen"; }
+      if (exit) { exit.hidden = !full; }
+    }
+
+    function reflow() {
+      // Two frames: one for the browser to settle the new box, one for cytoscape to
+      // measure it. Resizing in the same tick reads the OLD rectangle.
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          cy.resize();
+          cy.fit(undefined, 40);
+        });
+      });
+    }
+
+    function onChange() {
+      paint();
+      reflow();
+    }
+
+    btn.addEventListener("click", function () {
+      var p = isFull() ? fsExit() : fsRequest(stage);
+      // A rejected request must not leave the button claiming a state we are not in.
+      if (p && typeof p.catch === "function") { p.catch(paint); }
+    });
+
+    if (exit) {
+      exit.addEventListener("click", function () {
+        var p = fsExit();
+        if (p && typeof p.catch === "function") { p.catch(paint); }
+      });
+    }
+
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    paint();
   }
 
   window.TapPluginTaxonomy = { init: init };

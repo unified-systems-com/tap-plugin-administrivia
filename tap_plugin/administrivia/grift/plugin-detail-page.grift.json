@@ -8,13 +8,13 @@
       "batch_entity": {
         "entity_id": "01a0a6be-eabc-7355-8013-12cd88b62eba",
         "entity_type": "batch",
-        "name": "Plugin detail page v0.1.0",
+        "name": "Plugins detail page v0.2.0",
         "dimensions": {}
       },
       "batch_node": {
         "source": "plugins.administrivia",
-        "name": "Plugin detail page v0.1.0",
-        "description": "The per-plugin detail page at /administrivia/plugin?slug=<slug>, reached from a row on /administrivia/plugins. Two panels over one derivation (plugin_facts.build_plugin_facts): plugin_detail renders identity, provenance, declared-vs-loaded surfaces, both dependency directions, node and edge types with live counts, collectors, recent batches, GRIFT bundles and boot records; plugin_taxonomy draws the type-level graph the plugin DECLARES \u2014 node types as nodes, declared edge types as directed edges, cross-plugin endpoints distinguished \u2014 with the live counts painted on in three states (a number / declared-never-observed / not observable). Gated above grid.read: the facts route through tap_plugins.report.get_plugin_report(), which authorizes plugins.read in the service layer. The route is a query parameter, not a path segment, because tap_web has no generic path-parameter page route \u2014 the gap is named in req-administrivia-v0-plugin-detail-page. discoverable=false: a per-item page is reached from its parent table, not from navigation."
+        "name": "Plugins detail page v0.2.0",
+        "description": "The per-plugin detail page at /administrivia/plugin?slug=<slug>, reached from a row on /administrivia/plugins. Three rows, and the order is the point: identity + declared-vs-loaded surfaces, then the TAXONOMY DIAGRAM, then dependencies, node and edge types with live counts, collectors, recent batches, GRIFT bundles and boot records. The diagram is what makes the page worth opening, so it sits above the fold rather than below two dependency tables. That ordering lives in the PAGE, not in a panel: plugin_detail is mounted twice, each instance naming the sections it renders in its 'sections' config, so the panel type never needs to know a graph exists between them. Both detail instances hide their panel header - the identity block is the page's heading. All three panels read one derivation (plugin_facts.build_plugin_facts), which routes identity through tap_plugins.report.get_plugin_report() and so authorizes plugins.read in the service layer; the page's content is gated above grid.read. The taxonomy panel draws the type-level graph the plugin DECLARES - node types as nodes, declared edge types as directed edges, cross-plugin endpoints distinguished - with live counts painted on in three states (a number / declared-never-observed / not observable), and carries a full-screen control that takes the legend with it. The route is a query parameter, not a path segment, because tap_web has no generic path-parameter page route - the gap is named in req-administrivia-v0-plugin-detail-page. discoverable=false: a per-item page is reached from its parent table, not from navigation."
       },
       "nodes": [
         {
@@ -40,6 +40,9 @@
                     },
                     "row-2": {
                       "panel-id": "taxonomy"
+                    },
+                    "row-3": {
+                      "panel-id": "detail-body"
                     }
                   }
                 }
@@ -57,10 +60,16 @@
           "node": {
             "slug": "plugin-detail",
             "name": "Plugin Detail",
-            "description": "Identity, provenance, declared-vs-loaded surfaces, both dependency directions, declared types with live counts, collectors, recent batches, GRIFT bundles and boot records for one plugin.",
+            "description": "Identity and provenance for one plugin, with its declared-vs-loaded surface counts. The head of the detail page; the taxonomy graph follows it and the remaining sections follow that.",
             "view": "administrivia/panels/plugin_detail.html",
             "editor_view": "",
-            "config": {}
+            "config": {
+              "sections": [
+                "identity",
+                "surfaces"
+              ],
+              "hide_header": true
+            }
           }
         },
         {
@@ -73,11 +82,35 @@
           "node": {
             "slug": "plugin-taxonomy",
             "name": "Declared Taxonomy",
-            "description": "The type-level graph this plugin declares \u2014 node types as nodes, declared edge types as directed edges, another plugin's endpoint types distinguished \u2014 with live instance counts painted on. Built from manifest declarations, so it is complete on a grid holding no data at all; a declared type nothing has ever used is drawn dashed rather than omitted.",
+            "description": "The type-level graph this plugin declares \u2014 node types as nodes, declared edge types as directed edges, another plugin's endpoint types distinguished \u2014 with live instance counts painted on. Built from manifest declarations, so it is complete on a grid holding no data at all; a declared type nothing has ever used is drawn dashed rather than omitted. Full-screen control included: the legend travels with the graph.",
             "view": "administrivia/panels/plugin_taxonomy.html",
             "editor_view": "",
             "config": {
-              "height": "560px"
+              "height": "620px"
+            }
+          }
+        },
+        {
+          "entity": {
+            "entity_id": "01a0a708-7fe2-763f-bf65-b7c0699c701c",
+            "entity_type": "panel",
+            "name": "Plugin Detail (continued)",
+            "dimensions": {}
+          },
+          "node": {
+            "slug": "plugin-detail-body",
+            "name": "Plugin Detail (continued)",
+            "description": "The rest of one plugin's detail, below the taxonomy graph: both dependency directions, node and edge types with live counts and a per-table filter, collectors, recent batches, GRIFT bundles and boot records.",
+            "view": "administrivia/panels/plugin_detail.html",
+            "editor_view": "",
+            "config": {
+              "sections": [
+                "dependencies",
+                "types",
+                "activity",
+                "manifest"
+              ],
+              "hide_header": true
             }
           }
         }
@@ -119,6 +152,26 @@
                 "model": "page",
                 "spec": "page-panels",
                 "value": "taxonomy"
+              }
+            }
+          }
+        },
+        {
+          "entity": {
+            "entity_id": "01a0a708-7fe2-763f-bf65-b7c144ea2a4e",
+            "entity_type": "edge",
+            "name": "USES_PANEL detail body",
+            "dimensions": {}
+          },
+          "edge": {
+            "from_entity_id": "01a0a6be-eabc-7355-8013-12ceeeec51ae",
+            "to_entity_id": "01a0a708-7fe2-763f-bf65-b7c0699c701c",
+            "edge_type": "USES_PANEL",
+            "properties": {
+              "hotlink": {
+                "model": "page",
+                "spec": "page-panels",
+                "value": "detail-body"
               }
             }
           }
