@@ -1,3 +1,4 @@
+{% load tap_time %}
 {% comment %}
 Plugin Detail panel (req-administrivia-v0-plugin-detail-panel).
 
@@ -9,6 +10,11 @@ this template carries no dependency on the compiled tailwind.css rebuild cycle.
 
 THREE STATES: a count renders as a number, "declared, never observed", or "not observable".
 They are styled differently on purpose. Never collapse the last two.
+
+SECTIONS: an instance renders the subset its `config.sections` names (resolved by the panel
+type into `sections`, always in canonical order). The page mounts this panel twice — head
+sections above the taxonomy graph, the rest below it — so the PAGE decides what a reader
+meets first without this template knowing the graph exists.
 {% endcomment %}
 <div class="tap-panel tap-panel--plugin-detail">
     {% if not panel.config.hide_header %}{% include "tap_web/panel_header.html" %}{% endif %}
@@ -21,6 +27,7 @@ They are styled differently on purpose. Never collapse the last two.
     {% elif plugin %}
 
     {# ---------------- Identity + provenance ---------------- #}
+    {% if "identity" in sections %}
     <header class="tap-pd__head">
         <div class="tap-pd__ident">
             <h2 class="tap-pd__name">{{ plugin.name }}</h2>
@@ -53,8 +60,10 @@ They are styled differently on purpose. Never collapse the last two.
     {% if manifest_note %}
         <p class="tap-pd__note">{{ manifest_note }}</p>
     {% endif %}
+    {% endif %}{# identity #}
 
     {# ---------------- Surfaces: declared vs loaded ---------------- #}
+    {% if "surfaces" in sections %}
     <section class="tap-pd__section">
         <h3 class="tap-pd__h">Surfaces</h3>
         <p class="tap-pd__sub">What the manifest declares, against what actually registered. A shortfall is a load failure, not a rounding error.</p>
@@ -74,8 +83,10 @@ They are styled differently on purpose. Never collapse the last two.
             {% endfor %}
         </div>
     </section>
+    {% endif %}{# surfaces #}
 
     {# ---------------- Dependencies, both directions ---------------- #}
+    {% if "dependencies" in sections %}
     <section class="tap-pd__section">
         <h3 class="tap-pd__h">Dependencies</h3>
         <div class="tap-pd__cols">
@@ -119,23 +130,42 @@ They are styled differently on purpose. Never collapse the last two.
         </div>
         {% endif %}
     </section>
+    {% endif %}{# dependencies #}
 
-    {# ---------------- Node types ---------------- #}
-    <section class="tap-pd__section">
-        <h3 class="tap-pd__h">Node types <span class="tap-pd__n">{{ node_types|length }}</span></h3>
-        {% if node_types %}
+    {# ---------------- Node types + edge types ---------------- #}
+    {% if "types" in sections %}
+    <section class="tap-pd__section" data-pd-filterable id="pd-nodes-{{ panel.entity_id }}">
+        <div class="tap-pd__section-head">
+            <h3 class="tap-pd__h">Node types {% if not facts.unobservable.types %}<span class="tap-pd__n">{{ node_types|length }}</span>{% else %}<span class="tap-pd__n tap-pd__n--unknown" title="not observable">?</span>{% endif %}</h3>
+            {% if node_types %}
+            <div class="tap-pd__filter">
+                <input type="search" data-pd-filter-input
+                       placeholder="Filter node types&hellip;"
+                       aria-label="Filter node types"
+                       aria-controls="pd-nodes-{{ panel.entity_id }}"
+                       class="tap-pd__filter-input">
+                {# Live count: an empty result is a STATED state, never a blank table. #}
+                <span class="tap-pd__filter-count" data-pd-filter-count aria-live="polite"></span>
+            </div>
+            {% endif %}
+        </div>
+        {% if facts.unobservable.types %}
+        {% include "administrivia/partials/unobservable.html" with reason=facts.unobservable.types noun="Node types" %}
+        {% elif node_types %}
         <div class="tap-pd__table-wrap">
         <table class="tap-pd__table">
             <thead><tr><th>Type</th><th>Name</th><th>Kind</th><th class="tap-pd__num">Instances</th></tr></thead>
             <tbody>
             {% for t in node_types %}
-            <tr class="{% if t.count.is_never_observed %}tap-pd__row--never{% elif t.count.is_not_observable %}tap-pd__row--unobservable{% endif %}">
+            <tr data-pd-row data-text="{{ t.search_text }}"
+                class="{% if t.count.is_never_observed %}tap-pd__row--never{% elif t.count.is_not_observable %}tap-pd__row--unobservable{% endif %}">
                 <td><code>{{ t.slug }}</code></td>
-                <td>{{ t.name }}{% if t.description %}<span class="tap-pd__desc">{{ t.description }}</span>{% endif %}</td>
+                <td>{{ t.name }}{% if t.description %}<span class="tap-pd__desc" title="{{ t.description }}">{{ t.description }}</span>{% endif %}</td>
                 <td><span class="tap-pill tap-pill--soft">{{ t.kind_label }}</span></td>
                 <td class="tap-pd__num">{% include "administrivia/partials/count_state.html" with count=t.count %}</td>
             </tr>
             {% endfor %}
+            <tr data-pd-none hidden><td colspan="4" class="tap-pd__none">No node type matches that filter.</td></tr>
             </tbody>
         </table>
         </div>
@@ -145,16 +175,37 @@ They are styled differently on purpose. Never collapse the last two.
     </section>
 
     {# ---------------- Edge types ---------------- #}
-    <section class="tap-pd__section">
-        <h3 class="tap-pd__h">Edge types <span class="tap-pd__n">{{ edge_types|length }}</span></h3>
-        {% if edge_types %}
+    <section class="tap-pd__section" data-pd-filterable id="pd-edges-{{ panel.entity_id }}">
+        <div class="tap-pd__section-head">
+            <h3 class="tap-pd__h">Edge types {% if not facts.unobservable.types %}<span class="tap-pd__n">{{ edge_types|length }}</span>{% else %}<span class="tap-pd__n tap-pd__n--unknown" title="not observable">?</span>{% endif %}</h3>
+            {% if edge_types %}
+            <div class="tap-pd__filter">
+                <input type="search" data-pd-filter-input
+                       placeholder="Filter edge types&hellip;"
+                       aria-label="Filter edge types"
+                       aria-controls="pd-edges-{{ panel.entity_id }}"
+                       class="tap-pd__filter-input">
+                <span class="tap-pd__filter-count" data-pd-filter-count aria-live="polite"></span>
+            </div>
+            {% endif %}
+        </div>
+        {% if facts.unobservable.types %}
+        {% include "administrivia/partials/unobservable.html" with reason=facts.unobservable.types noun="Edge types" %}
+        {% elif edge_types %}
         <div class="tap-pd__table-wrap">
         <table class="tap-pd__table">
             <thead><tr><th>Type</th><th>Endpoints</th><th class="tap-pd__num">Instances</th></tr></thead>
             <tbody>
             {% for t in edge_types %}
-            <tr class="{% if t.count.is_never_observed %}tap-pd__row--never{% elif t.count.is_not_observable %}tap-pd__row--unobservable{% endif %}">
-                <td><code>{{ t.slug }}</code><span class="tap-pd__desc">{{ t.name }}</span></td>
+            <tr data-pd-row data-text="{{ t.search_text }}"
+                class="{% if t.count.is_never_observed %}tap-pd__row--never{% elif t.count.is_not_observable %}tap-pd__row--unobservable{% endif %}">
+                <td>
+                    <code>{{ t.slug }}</code>
+                    {# The description is DISPLAYED, not just searched: the filter matches what a #}
+                    {# row shows, so a hit the reader cannot see would be the filter lying about  #}
+                    {# what it looked at. Clamped to three lines; full text on hover.             #}
+                    <span class="tap-pd__desc" {% if t.description %}title="{{ t.description }}"{% endif %}>{{ t.name }}{% if t.description %} &mdash; {{ t.description }}{% endif %}</span>
+                </td>
                 <td class="tap-pd__ends">
                     {% if not t.endpoints_observable %}
                         <span class="tap-pd__unobservable" title="{{ t.endpoints_reason }}">not observable</span>
@@ -167,6 +218,7 @@ They are styled differently on purpose. Never collapse the last two.
                 <td class="tap-pd__num">{% include "administrivia/partials/count_state.html" with count=t.count %}</td>
             </tr>
             {% endfor %}
+            <tr data-pd-none hidden><td colspan="3" class="tap-pd__none">No edge type matches that filter.</td></tr>
             </tbody>
         </table>
         </div>
@@ -175,19 +227,36 @@ They are styled differently on purpose. Never collapse the last two.
         {% endif %}
     </section>
 
+    {% endif %}{# types #}
+    {% if "types" in sections %}
+    <script>
+    (function () {
+        var panelId = "{{ panel.entity_id }}";
+        function go() { if (window.TapPluginDetail) { window.TapPluginDetail.init(panelId); } }
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", go);
+        } else { go(); }
+    })();
+    </script>
+    {% endif %}
+
     {# ---------------- Collectors ---------------- #}
+    {% if "activity" in sections %}
     <section class="tap-pd__section">
-        <h3 class="tap-pd__h">Collectors <span class="tap-pd__n">{{ collectors|length }}</span></h3>
-        {% if collectors %}
+        <h3 class="tap-pd__h">Collectors {% if not facts.unobservable.collectors %}<span class="tap-pd__n">{{ collectors|length }}</span>{% else %}<span class="tap-pd__n tap-pd__n--unknown" title="not observable">?</span>{% endif %}</h3>
+        {% if facts.unobservable.collectors %}
+        {% include "administrivia/partials/unobservable.html" with reason=facts.unobservable.collectors noun="Collectors" %}
+        {% elif collectors %}
         <ul class="tap-pd__cards">
             {% for c in collectors %}
             <li class="tap-pd__card">
                 <a class="tap-pd__card-title" href="/administrivia/cares/collector?entity_id={{ c.entity_id }}">{{ c.name }}</a>
                 <code class="tap-pd__card-key">{{ c.registry_key }}</code>
                 <div class="tap-pd__card-foot">
-                    <span class="tap-pill tap-pill--{% if c.last_status == 'successful' %}ok{% elif c.last_status == 'failed' %}err{% else %}neutral{% endif %}">{{ c.last_status_label }}</span>
-                    {% if c.last_run_at %}<time class="tap-pd__when" data-tap-localtime datetime="{{ c.last_run_at|date:'c' }}">{{ c.last_run_at|date:'Y-m-d H:i' }}</time>{% endif %}
-                    <span class="tap-pd__runs">{{ c.run_count }} run{{ c.run_count|pluralize }}</span>
+                    <span class="tap-pill tap-pill--{% if not c.runs_observable %}warn{% elif c.last_status == 'successful' %}ok{% elif c.last_status == 'failed' %}err{% else %}neutral{% endif %}"
+                          {% if c.runs_reason %}title="{{ c.runs_reason }}"{% endif %}>{{ c.last_status_label }}</span>
+                    {% if c.last_run_at %}<span class="tap-pd__when">{{ c.last_run_at|tap_localtime }}</span>{% endif %}
+                    {% if c.runs_observable %}<span class="tap-pd__runs">{{ c.run_count }} run{{ c.run_count|pluralize }}</span>{% endif %}
                 </div>
             </li>
             {% endfor %}
@@ -205,7 +274,9 @@ They are styled differently on purpose. Never collapse the last two.
             convention across producers (unified-systems-com/tap#464), so this matches every shape observed;
             batches recorded with an empty source belong to no plugin and are never claimed here.
         </p>
-        {% if batches %}
+        {% if facts.unobservable.batches %}
+        {% include "administrivia/partials/unobservable.html" with reason=facts.unobservable.batches noun="Batches" %}
+        {% elif batches %}
         <div class="tap-pd__table-wrap">
         <table class="tap-pd__table">
             <thead><tr><th>Batch</th><th>Status</th><th>Source</th><th>Started</th></tr></thead>
@@ -215,7 +286,7 @@ They are styled differently on purpose. Never collapse the last two.
                 <td><a href="/administrivia/batch?batch_entity_id={{ b.entity_id }}">{{ b.name }}</a></td>
                 <td><span class="tap-pill tap-pill--{% if b.status == 'closed' %}ok{% elif b.status == 'failed' %}err{% else %}neutral{% endif %}">{{ b.status }}</span></td>
                 <td><code class="tap-pd__src">{{ b.source|default:"—" }}</code></td>
-                <td><time data-tap-localtime datetime="{{ b.started_at|date:'c' }}">{{ b.started_at|date:'Y-m-d H:i' }}</time></td>
+                <td class="tap-pd__when">{{ b.started_at|tap_localtime }}</td>
             </tr>
             {% endfor %}
             </tbody>
@@ -225,13 +296,17 @@ They are styled differently on purpose. Never collapse the last two.
         <p class="tap-pd__empty">No batches on this grid carry a source naming this plugin.</p>
         {% endif %}
     </section>
+    {% endif %}{# activity #}
 
     {# ---------------- GRIFT + boot records ---------------- #}
+    {% if "manifest" in sections %}
     <section class="tap-pd__section">
         <div class="tap-pd__cols">
             <div class="tap-pd__col">
-                <h4 class="tap-pd__h4">GRIFT bundles <span class="tap-pd__n">{{ grift_bundles|length }}</span></h4>
-                {% if grift_bundles %}
+                <h4 class="tap-pd__h4">GRIFT bundles {% if not facts.unobservable.grift %}<span class="tap-pd__n">{{ grift_bundles|length }}</span>{% else %}<span class="tap-pd__n tap-pd__n--unknown" title="not observable">?</span>{% endif %}</h4>
+                {% if facts.unobservable.grift %}
+                {% include "administrivia/partials/unobservable.html" with reason=facts.unobservable.grift noun="GRIFT bundles" %}
+                {% elif grift_bundles %}
                 <ul class="tap-pd__plain">
                     {% for g in grift_bundles %}<li><strong>{{ g.name }}</strong> <code>{{ g.path }}</code></li>{% endfor %}
                 </ul>
@@ -240,8 +315,10 @@ They are styled differently on purpose. Never collapse the last two.
                 {% endif %}
             </div>
             <div class="tap-pd__col">
-                <h4 class="tap-pd__h4">Boot records <span class="tap-pd__n">{{ boot_records|length }}</span></h4>
-                {% if boot_records %}
+                <h4 class="tap-pd__h4">Boot records {% if not facts.unobservable.boot_records %}<span class="tap-pd__n">{{ boot_records|length }}</span>{% else %}<span class="tap-pd__n tap-pd__n--unknown" title="not observable">?</span>{% endif %}</h4>
+                {% if facts.unobservable.boot_records %}
+                {% include "administrivia/partials/unobservable.html" with reason=facts.unobservable.boot_records noun="Boot records" %}
+                {% elif boot_records %}
                 <ul class="tap-pd__plain">
                     {% for b in boot_records %}
                     <li><strong>{{ b.name }}</strong>
@@ -256,6 +333,7 @@ They are styled differently on purpose. Never collapse the last two.
             </div>
         </div>
     </section>
+    {% endif %}{# manifest #}
 
     {% else %}
         <p class="tap-pd__empty">No plugin selected. Open this page from a row on <a href="/administrivia/plugins">Plugins</a>.</p>

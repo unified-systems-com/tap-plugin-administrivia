@@ -74,6 +74,19 @@ def normalize_slug(raw: str) -> str:
     return candidate if _SLUG_RE.match(candidate) else ""
 
 
+# Why a whole SECTION may be unreadable. A section that could not be read is not a section
+# with nothing in it, and the difference is the entire point of this page. These strings are
+# rendered to the operator, so they say what went wrong and what it does NOT mean.
+MANIFEST_UNAVAILABLE = (
+    "this plugin's manifest is not available on its AppConfig, so what it declares cannot be "
+    "read — this is not the same as declaring nothing"
+)
+CATALOG_UNREADABLE = "the type catalog could not be read, so registration could not be checked"
+COLLECTORS_UNREADABLE = "the collector read failed, so whether this plugin ships collectors is unknown"
+BATCHES_UNREADABLE = "the batch read failed, so this plugin's produced batches are unknown"
+RUNS_UNREADABLE = "this collector's run history could not be read"
+
+
 # How many batches the detail page shows. A plugin with a busy collector produces
 # thousands; the page wants the recent shape, not the archive.
 RECENT_BATCH_LIMIT = 12
@@ -113,6 +126,20 @@ class CountState:
         return self.state == NOT_OBSERVABLE
 
 
+def _absent_reason(registered: bool, catalog_readable: bool, noun: str) -> str:
+    """Say WHY a count is not observable, truthfully.
+
+    "Declared but not registered" is a strong claim, and it is false when the type catalog
+    simply could not be read — the type may be registered perfectly well. Distinguishing the
+    two is the same discipline as distinguishing zero from unknown.
+    """
+    if not catalog_readable:
+        return CATALOG_UNREADABLE
+    if not registered:
+        return "declared in the manifest but not registered in the type catalog"
+    return f"the {noun} count could not be read"
+
+
 def _count_state(registered: bool, count: int | None, *, absent_reason: str) -> CountState:
     """Fold (is it registered, how many are there) into one of the three states."""
     if not registered or count is None:
@@ -144,6 +171,20 @@ class TypeFact:
         return self.kind or "unclassified"
 
     @property
+    def search_text(self) -> str:
+        """Lowercase haystack the per-table filter matches against.
+
+        Derived here rather than in the template so the filter searches exactly what the
+        row displays — a row that shows an endpoint the filter cannot find is a filter
+        that lies about what it looked at. Lowercased once, server-side, because the
+        client compares with a plain `indexOf` (the pattern git_serious's query pack uses).
+        """
+        parts = [self.slug, self.name, self.kind_label, self.description, self.owner_slug, self.count.label]
+        parts += self.sources or []
+        parts += self.targets or []
+        return " ".join(p for p in parts if p).lower()
+
+    @property
     def endpoints_observable(self) -> bool:
         """Whether this edge type's declared endpoints could be read at all.
 
@@ -167,6 +208,10 @@ class CollectorFact:
     last_run_at: Any
     last_summary: str
     run_count: int
+    # A collector whose run history could not be read has an UNKNOWN last run, not "never
+    # run". Carried per collector so one unreadable history does not blank the section.
+    runs_observable: bool = True
+    runs_reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -197,10 +242,25 @@ class PluginFacts:
     # foreign endpoints the taxonomy panel draws).
     type_owners: dict[str, str] = field(default_factory=dict)
     manifest_available: bool = False
+    # section key -> why it could not be read. A key present here means the section's list is
+    # EMPTY BECAUSE WE COULD NOT LOOK, and the surface must say so instead of rendering an
+    # empty state. Keys: "types", "grift", "boot_records", "collectors", "batches".
+    # (Templates read this as `facts.unobservable.<key>`.)
+    unobservable: dict[str, str] = field(default_factory=dict)
 
     @property
     def has_declared_types(self) -> bool:
         return bool(self.node_types or self.edge_types)
+
+    @property
+    def types_observable(self) -> bool:
+        """False when the declarations could not be read at all.
+
+        `has_declared_types` is False both for a plugin that declares nothing and for one
+        whose manifest could not be read. Only this tells them apart, and every consumer
+        MUST consult it before saying "declares no types".
+        """
+        return "types" not in self.unobservable
 
 
 # ---------------------------------------------------------------------------
@@ -338,11 +398,15 @@ def _endpoint_list(raw: Any) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-def _collectors_for(slug: str) -> list[CollectorFact]:
+def _collectors_for(slug: str) -> tuple[list[CollectorFact], str]:
     """Collectors whose registry key is scoped to this plugin, newest run first.
 
     `Collector.collector_registry` is `<scope>:<key>` and the scope is mandatorily the
     plugin slug, so the prefix is the ownership test.
+
+    Returns `(collectors, reason)`. A non-empty `reason` means the read FAILED and the empty
+    list is ignorance, not absence — logging the failure does not make "ships no collectors"
+    a true statement, so the reason travels to the surface.
     """
     from tap_cares.models import CollectionJob, Collector
     from tap_grid.models import Edge
@@ -351,20 +415,28 @@ def _collectors_for(slug: str) -> list[CollectorFact]:
         collectors = list(Collector.objects.filter(collector_registry__startswith=f"{slug}:").order_by("name"))
     except Exception:
         logger.exception("[b4f3] collector lookup failed for plugin %s", slug)
-        return []
+        return [], COLLECTORS_UNREADABLE
 
     facts: list[CollectorFact] = []
     for c in collectors:
         registry_key = c.collector_registry
         local_key = registry_key.split(":", 1)[1] if ":" in registry_key else registry_key
-        job_ids = list(
-            Edge.objects.filter(from_entity_id=c.entity_id, edge_type="HAS_COLLECTION_JOB").values_list(
-                "to_entity_id", flat=True
-            )
-        )
+        runs_ok = True
+        job_ids: list[Any] = []
         latest = None
-        if job_ids:
-            latest = CollectionJob.objects.filter(entity_id__in=job_ids).order_by("-enqueued_at").first()
+        try:
+            job_ids = list(
+                Edge.objects.filter(from_entity_id=c.entity_id, edge_type="HAS_COLLECTION_JOB").values_list(
+                    "to_entity_id", flat=True
+                )
+            )
+            if job_ids:
+                latest = CollectionJob.objects.filter(entity_id__in=job_ids).order_by("-enqueued_at").first()
+        except Exception:
+            # One unreadable history must not blank the whole section, and must not render
+            # as "never run" — that is the same lie one level down.
+            logger.exception("[c3a7] run history read failed for collector %s", c.entity_id)
+            runs_ok = False
         facts.append(
             CollectorFact(
                 entity_id=str(c.entity_id),
@@ -372,13 +444,17 @@ def _collectors_for(slug: str) -> list[CollectorFact]:
                 registry_key=registry_key,
                 local_key=local_key,
                 last_status=latest.status if latest else "",
-                last_status_label=latest.get_status_display() if latest else "never run",
+                last_status_label=(
+                    latest.get_status_display() if latest else ("never run" if runs_ok else "run history not observable")
+                ),
                 last_run_at=(latest.finished_at or latest.started_at or latest.enqueued_at) if latest else None,
                 last_summary=latest.summary if latest else "",
                 run_count=len(job_ids),
+                runs_observable=runs_ok,
+                runs_reason="" if runs_ok else RUNS_UNREADABLE,
             )
         )
-    return facts
+    return facts, ""
 
 
 def batch_source_filter(slug: str) -> Any:
@@ -412,15 +488,19 @@ def batch_source_filter(slug: str) -> Any:
     )
 
 
-def _batches_for(slug: str) -> list[BatchFact]:
-    """The most recent batches attributable to this plugin, newest first."""
+def _batches_for(slug: str) -> tuple[list[BatchFact], str]:
+    """The most recent batches attributable to this plugin, newest first.
+
+    Returns `(batches, reason)`; a non-empty reason means the read failed and the empty list
+    must not be rendered as "this plugin has produced nothing".
+    """
     from tap_grid.models import Batch
 
     try:
         rows = list(Batch.objects.filter(batch_source_filter(slug)).order_by("-started_at")[:RECENT_BATCH_LIMIT])
     except Exception:
         logger.exception("[688a] batch lookup failed for plugin %s", slug)
-        return []
+        return [], BATCHES_UNREADABLE
     return [
         BatchFact(
             entity_id=str(b.entity_id),
@@ -431,7 +511,7 @@ def _batches_for(slug: str) -> list[BatchFact]:
             source=b.source,
         )
         for b in rows
-    ]
+    ], ""
 
 
 # ---------------------------------------------------------------------------
@@ -474,12 +554,24 @@ def build_plugin_facts(slug: str) -> PluginFacts:
     manifest = _manifest_for(app_config) if app_config is not None else None
     facts.manifest_available = manifest is not None
     if manifest is None:
-        # The plugin loaded but its manifest did not — say so instead of rendering an
-        # empty type list that reads as "this plugin declares nothing".
+        # The plugin loaded but its manifest did not. EVERYTHING the manifest would have told
+        # us is now unknown — not zero. Marking the sections is what stops the surface saying
+        # "declares no types" / "seeds no GRIFT" / "ships no boot records" about a plugin that
+        # may well do all three (#12).
         facts.error = (
             "This plugin's manifest is not available on its AppConfig, so its declared "
             "types, GRIFT bundles and boot records are not observable."
         )
+        for key in ("types", "grift", "boot_records"):
+            facts.unobservable[key] = MANIFEST_UNAVAILABLE
+        # Identity, provenance and activity do not come from the manifest, so they stay
+        # readable: a section that cannot be read says so while the rest of the page renders.
+        facts.collectors, collectors_reason = _collectors_for(slug)
+        if collectors_reason:
+            facts.unobservable["collectors"] = collectors_reason
+        facts.batches, batches_reason = _batches_for(slug)
+        if batches_reason:
+            facts.unobservable["batches"] = batches_reason
         return facts
 
     declared_nodes = [m.slug for m in manifest.models]
@@ -498,11 +590,15 @@ def build_plugin_facts(slug: str) -> PluginFacts:
     wanted = set(declared_nodes) | set(declared_edges) | foreign
 
     module_to_slug = _module_path_to_slug()
+    catalog_readable = True
     try:
         rows = {et.slug: et for et in EntityType.objects.filter(slug__in=sorted(wanted))}
     except Exception:
         logger.exception("[1cd5] EntityType lookup failed for plugin %s", slug)
         rows = {}
+        catalog_readable = False
+        # Every declared type will look unregistered. It is not — we could not check.
+        facts.unobservable["types"] = CATALOG_UNREADABLE
     facts.type_owners = {s: module_to_slug.get(et.plugin_name, et.plugin_name) for s, et in rows.items()}
 
     node_counts = _node_counts(sorted(wanted & set(rows) | set(declared_nodes)))
@@ -522,11 +618,7 @@ def build_plugin_facts(slug: str) -> PluginFacts:
             count=_count_state(
                 registered,
                 count,
-                absent_reason=(
-                    "declared in the manifest but not registered in the type catalog"
-                    if not registered
-                    else "the entity count could not be read"
-                ),
+                absent_reason=_absent_reason(registered, catalog_readable, "entity"),
             ),
             owner_slug=facts.type_owners.get(type_slug, ""),
         )
@@ -549,11 +641,7 @@ def build_plugin_facts(slug: str) -> PluginFacts:
                 count=_count_state(
                     registered,
                     count,
-                    absent_reason=(
-                        "declared in the manifest but not registered in the type catalog"
-                        if not registered
-                        else "the edge count could not be read"
-                    ),
+                    absent_reason=_absent_reason(registered, catalog_readable, "edge"),
                 ),
                 owner_slug=facts.type_owners.get(edge_slug, slug),
                 sources=sources,
@@ -563,8 +651,12 @@ def build_plugin_facts(slug: str) -> PluginFacts:
         )
     facts.edge_types = edge_facts
 
-    facts.collectors = _collectors_for(slug)
-    facts.batches = _batches_for(slug)
+    facts.collectors, collectors_reason = _collectors_for(slug)
+    if collectors_reason:
+        facts.unobservable["collectors"] = collectors_reason
+    facts.batches, batches_reason = _batches_for(slug)
+    if batches_reason:
+        facts.unobservable["batches"] = batches_reason
     facts.grift_bundles = [{"name": g.name, "path": g.path} for g in manifest.grift]
     facts.boot_records = [
         {"name": b.name, "description": b.description, "sha256": b.sha256} for b in manifest.boot_records

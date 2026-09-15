@@ -13,6 +13,16 @@ inline script does nothing but hand it to Cytoscape (vendored by tap_viz).
 
     {% if graph_error %}
         <div class="tap-tax__error"><span class="tap-tax__error-mark" aria-hidden="true">!</span><span>{{ graph_error }}</span></div>
+    {% elif unobservable_message %}
+        {% comment %}
+          THIRD STATE. Styled apart from the empty state on purpose: "declares nothing" and
+          "could not be read" look identical in a blank canvas, and only one of them is a
+          statement about the plugin (#12).
+        {% endcomment %}
+        <div class="tap-tax__unobservable">
+            <span class="tap-tax__unobservable-mark" aria-hidden="true">?</span>
+            <span>{{ unobservable_message }}</span>
+        </div>
     {% elif empty_message %}
         <div class="tap-tax__empty">{{ empty_message }}</div>
     {% elif has_graph %}
@@ -21,11 +31,37 @@ inline script does nothing but hand it to Cytoscape (vendored by tap_viz).
         <span class="tap-tax__stat"><strong>{{ node_type_count }}</strong> node type{{ node_type_count|pluralize }}</span>
         <span class="tap-tax__stat"><strong>{{ edge_type_count }}</strong> edge type{{ edge_type_count|pluralize }}</span>
         {% if foreign_count %}<span class="tap-tax__stat tap-tax__stat--foreign"><strong>{{ foreign_count }}</strong> foreign endpoint{{ foreign_count|pluralize }}</span>{% endif %}
-        <button type="button" class="tap-tax__refit" data-tax-refit="{{ panel.entity_id }}" title="Re-fit the graph to the panel">Re-fit</button>
+        <button type="button" class="tap-tax__btn" data-tax-refit="{{ panel.entity_id }}" title="Re-fit the graph to the panel">Re-fit</button>
+        {% comment %}
+          Label and aria-pressed are rewritten from the `fullscreenchange` EVENT, never from
+          the click — the request can be refused, and the user can leave with Escape. A button
+          claiming a state the document is not in is a small lie.
+          Ships `hidden`; the script reveals it only where the Fullscreen API really works.
+        {% endcomment %}
+        <button type="button" class="tap-tax__btn tap-tax__btn--full"
+                data-tax-fullscreen="{{ panel.entity_id }}"
+                aria-pressed="false"
+                aria-label="Enter full screen"
+                title="Show the taxonomy full screen" hidden>
+            <span data-tax-fullscreen-label>Full screen</span>
+        </button>
     </div>
 
-    <div class="tap-tax__stage" style="height: {{ graph_height }};">
+    {% comment %}
+      The FULLSCREENED element is the stage, not the canvas: the legend lives inside it and
+      must come along. At full size the legend is worth more, not less — it is what makes the
+      violet cross-plugin edges and the dashed never-observed types readable.
+    {% endcomment %}
+    <div class="tap-tax__stage" data-tax-stage="{{ panel.entity_id }}" style="height: {{ graph_height }};">
         <div id="tap-tax-graph-{{ panel.entity_id }}" class="tap-tax__canvas"></div>
+        {% comment %}
+          The way OUT lives inside the stage, because the stage is what goes full screen:
+          the button up in the bar is outside that subtree and is unreachable once full
+          screen starts, so "Exit full screen" up there would be a label for a control
+          nobody can press. Hidden until full screen; Escape still works and is named on it.
+        {% endcomment %}
+        <button type="button" class="tap-tax__exit" data-tax-exit="{{ panel.entity_id }}"
+                aria-label="Exit full screen" hidden>Exit full screen <span class="tap-tax__esc">Esc</span></button>
         <div class="tap-tax__legend" role="note">
             <span class="tap-tax__legend-h">Legend</span>
             {% for item in legend %}

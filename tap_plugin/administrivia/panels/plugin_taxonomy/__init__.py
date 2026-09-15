@@ -239,6 +239,7 @@ class PluginTaxonomyPanelType:
             "graph_error": "",
             "has_graph": False,
             "empty_message": "",
+            "unobservable_message": "",
             "unplaced": [],
             "legend": [],
             "elements": [],
@@ -255,6 +256,19 @@ class PluginTaxonomyPanelType:
 
         if not facts.found:
             return {**base, "graph_error": facts.error}
+
+        # ORDER MATTERS. "No types" and "could not read the types" both leave the graph
+        # empty, and only one of them licenses the sentence "declares no node or edge types".
+        # Checking emptiness first is how a failed read became a confident claim (#12).
+        if not facts.types_observable:
+            return {
+                **base,
+                "unobservable_message": (
+                    f"The declared taxonomy for '{facts.slug}' is not observable: "
+                    f"{facts.unobservable['types']}. This is NOT a plugin that declares nothing — "
+                    f"nothing could be read either way."
+                ),
+            }
 
         if not facts.has_declared_types:
             return {

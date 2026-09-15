@@ -32,6 +32,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# The sections this panel can render, in the only order they make sense in. An INSTANCE
+# chooses a subset via `config.sections`, which is how the page interleaves the taxonomy
+# graph between "surfaces" and "dependencies" without this panel knowing the graph exists:
+# the PAGE owns the order of what a reader sees, the panel owns what each section says.
+SECTIONS: tuple[str, ...] = ("identity", "surfaces", "dependencies", "types", "activity", "manifest")
+
+
+def _sections(config: dict[str, Any] | None) -> list[str]:
+    """Resolve an instance's section list, ignoring unknown names, keeping canonical order.
+
+    An unconfigured instance renders everything — a panel dropped on a page with no config
+    must still be complete rather than silently blank.
+    """
+    requested = (config or {}).get("sections")
+    if not isinstance(requested, list) or not requested:
+        return list(SECTIONS)
+    wanted = {str(name) for name in requested}
+    return [name for name in SECTIONS if name in wanted]
+
+
 # Surfaces whose "loaded" count the plugin report genuinely measures. The others report
 # `loaded: null`, which is NOT zero — it is "we did not look". Rendering an unmeasured
 # surface as 0/N would be a declaration that is present and false.
@@ -116,6 +136,7 @@ _EMPTY: dict[str, Any] = {
     "grift_bundles": [],
     "boot_records": [],
     "manifest_note": "",
+    "sections": list(SECTIONS),
 }
 
 
@@ -125,8 +146,8 @@ class PluginDetailPanelType:
     view = "administrivia/panels/plugin_detail.html"
     editor_view = ""
     css: ClassVar[list[str]] = ["administrivia/css/plugin_detail.css"]
-    js: ClassVar[list[str]] = []
-    config_defaults: ClassVar[dict[str, Any]] = {}
+    js: ClassVar[list[str]] = ["administrivia/js/plugin_detail.js"]
+    config_defaults: ClassVar[dict[str, Any]] = {"sections": list(SECTIONS)}
 
     @classmethod
     def get_view_context(cls, panel: Panel, request: HttpRequest) -> dict[str, Any]:
@@ -136,6 +157,7 @@ class PluginDetailPanelType:
         # value in a log line lets a caller forge entries (Sonar S5145).
         raw = request.GET.get("slug", "")
         safe = normalize_slug(raw)
+        sections = _sections(panel.config)
         try:
             facts = build_plugin_facts(raw)
         except AuthzError:
@@ -146,10 +168,10 @@ class PluginDetailPanelType:
             raise
         except Exception as exc:  # noqa: BLE001 — a panel must never take the page down
             logger.exception("[84f9] plugin detail facts failed for slug %s", safe or "(invalid)")
-            return {**_EMPTY, "detail_error": f"{type(exc).__name__}: {exc}"}
+            return {**_EMPTY, "sections": sections, "detail_error": f"{type(exc).__name__}: {exc}"}
 
         if not facts.found:
-            return {**_EMPTY, "detail_error": facts.error}
+            return {**_EMPTY, "sections": sections, "detail_error": facts.error}
 
         record = facts.record
         version = record.get("version") or "unknown"
@@ -159,6 +181,7 @@ class PluginDetailPanelType:
 
         return {
             **_EMPTY,
+            "sections": sections,
             "facts": facts,
             "plugin": {
                 "slug": facts.slug,

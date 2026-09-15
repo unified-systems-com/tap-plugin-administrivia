@@ -80,6 +80,7 @@
 }
 .tap-pill--ok      { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
 .tap-pill--err     { background: #fef2f2; border: 1px solid #fca5a5; color: #7f1d1d; }
+.tap-pill--warn    { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
 .tap-pill--neutral { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; }
 .tap-pill--soft    { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; font-weight: 500; }
 
@@ -125,6 +126,51 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
+/* Heading row that carries a per-table filter on its right. Wraps on a narrow panel so
+   the box drops under the heading rather than crushing it. */
+.tap-pd__section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.tap-pd__section-head .tap-pd__h { margin-bottom: 0; }
+.tap-pd__filter { display: flex; align-items: baseline; gap: 8px; }
+.tap-pd__filter-input {
+    width: 190px;
+    max-width: 100%;
+    padding: 3px 9px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.tap-pd__filter-input::placeholder { color: #94a3b8; }
+.tap-pd__filter-input:focus {
+    outline: none;
+    border-color: #64748b;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.18);
+}
+/* Live count — silent until something is actually filtered. */
+.tap-pd__filter-count {
+    color: #64748b;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+/* A filter that matches nothing says so in the table it emptied. */
+.tap-pd__none {
+    padding: 14px 12px !important;
+    color: #94a3b8;
+    font-size: 12px;
+    font-style: italic;
+    text-align: center;
+}
+
 .tap-pd__sub { margin: 0 0 10px; color: #94a3b8; font-size: 12px; line-height: 1.5; max-width: 72ch; }
 .tap-pd__sub code { font-size: 11px; }
 .tap-pd__empty {
@@ -137,6 +183,38 @@
     font-size: 12px;
     font-style: italic;
 }
+/* THIRD STATE: a section that could not be read.
+   Deliberately unlike the empty state (grey, quiet, italic). This one is amber and marked,
+   because "we could not look" is a different claim from "there is nothing here" and the two
+   must never be mistaken for each other at a glance (#12, #13). */
+.tap-pd__unreadable {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 0;
+    padding: 10px 13px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.tap-pd__unreadable-mark {
+    flex: none;
+    width: 17px; height: 17px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: #d97706;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+}
+/* A count that is not known renders as "?", never as 0. */
+.tap-pd__n--unknown { background: #fef3c7; color: #b45309; cursor: help; }
+
 .tap-pd__cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
 .tap-pd__col { min-width: 0; }
 
@@ -204,7 +282,21 @@
 .tap-pd__table a { color: #1d4ed8; text-decoration: none; }
 .tap-pd__table a:hover { text-decoration: underline; }
 .tap-pd__num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tap-pd__desc { display: block; color: #94a3b8; font-size: 11.5px; line-height: 1.45; margin-top: 2px; }
+/* Type descriptions run to several hundred characters. Clamped to three lines so a table
+   of five edge types stays scannable; the full text is in the element's `title`, and the
+   whole string is what the filter matches — displayed and searched agree. */
+.tap-pd__desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 11.5px;
+    line-height: 1.45;
+    margin-top: 2px;
+    max-width: 78ch;
+}
 .tap-pd__row--never td { background: #fffdf5; }
 .tap-pd__row--unobservable td { background: #fafafa; }
 

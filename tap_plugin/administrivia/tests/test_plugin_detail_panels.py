@@ -375,3 +375,150 @@ def test_batch_attribution_matches_every_observed_source_convention() -> None:
         "(source__startswith, tap_plugin.zeta.)",
     ):
         assert expected in rendered, (expected, rendered)
+
+
+# ---------------------------------------------------------------------------
+# Failure paths (#12, #13)
+#
+# These are the tests whose absence let two P2 defects through 27 green ones: every
+# existing test exercised a path where the reads SUCCEEDED, so a swallowed exception
+# returning `[]` was indistinguishable from a real empty result. Each test here breaks
+# exactly one read and asserts the RENDERED HTML does not claim absence.
+#
+# The assertion is always on rendered output, never on a flag. A context key set correctly
+# and a template that ignores it is precisely how #12 happened.
+# ---------------------------------------------------------------------------
+
+
+def _boom(*_args: object, **_kwargs: object) -> None:
+    raise RuntimeError("injected read failure")
+
+
+def _detail_html(monkeypatch_free_slug: str = _OWN) -> str:
+    ctx = PluginDetailPanelType.get_view_context(_panel(), _request(monkeypatch_free_slug))
+    return _render(PluginDetailPanelType.view, ctx, _panel())
+
+
+def test_unreadable_manifest_does_not_claim_the_plugin_declares_nothing(monkeypatch) -> None:
+    """#12 — an unavailable manifest is not a pages-only plugin.
+
+    The taxonomy used to render "declares no node or edge types" for a plugin whose
+    declarations simply could not be read, which is a confident claim about the plugin
+    derived from a failed read.
+    """
+    monkeypatch.setattr(pf, "_manifest_for", lambda _ac: None)
+    _authorize("tap_admin")
+
+    tax_ctx = PluginTaxonomyPanelType.get_view_context(_panel(), _request(_OWN))
+    tax_html = _render(PluginTaxonomyPanelType.view, tax_ctx, _panel())
+    assert tax_ctx["unobservable_message"]
+    assert not tax_ctx["empty_message"], "an unreadable manifest must not take the empty-state path"
+    assert "declares no node or edge types" not in tax_html
+    assert "not observable" in tax_html
+
+    detail_ctx = PluginDetailPanelType.get_view_context(_panel(), _request(_OWN))
+    detail_html = _render(PluginDetailPanelType.view, detail_ctx, _panel())
+    for false_claim in (
+        "Declares no node types",
+        "Declares no edge types",
+        "Seeds no GRIFT",
+        "Ships no boot records",
+    ):
+        assert false_claim not in detail_html, false_claim
+    assert detail_html.count("not observable") >= 4
+
+
+def test_unreadable_manifest_still_renders_identity_and_activity(monkeypatch) -> None:
+    """A section that cannot be read says so while the REST of the page still renders."""
+    monkeypatch.setattr(pf, "_manifest_for", lambda _ac: None)
+    _authorize("tap_admin")
+    ctx = PluginDetailPanelType.get_view_context(_panel(), _request(_OWN))
+    assert ctx["plugin"] is not None, "identity does not come from the manifest"
+    assert ctx["plugin"]["slug"] == _OWN
+    assert "collectors" not in ctx["facts"].unobservable
+    assert "batches" not in ctx["facts"].unobservable
+    assert _OWN in _render(PluginDetailPanelType.view, ctx, _panel())
+
+
+def test_a_genuinely_empty_manifest_still_reads_as_empty() -> None:
+    """The valid empty state must survive the fix — not every blank section is a failure.
+
+    administrivia really does declare no types; that must keep saying so rather than being
+    swept into "not observable" along with the failures.
+    """
+    _authorize("tap_admin")
+    ctx = PluginTaxonomyPanelType.get_view_context(_panel(), _request(_OWN))
+    assert not ctx["unobservable_message"]
+    assert ctx["empty_message"], "a real empty declaration must keep its empty state"
+
+
+def test_failed_collector_read_does_not_claim_the_plugin_ships_none(monkeypatch) -> None:
+    """#13 — a failed collector query is not "this plugin does not ingest anything"."""
+    from tap_cares.models import Collector
+
+    monkeypatch.setattr(Collector.objects, "filter", _boom)
+    _authorize("tap_admin")
+    ctx = PluginDetailPanelType.get_view_context(_panel(), _request(_OWN))
+    html = _render(PluginDetailPanelType.view, ctx, _panel())
+    assert ctx["facts"].unobservable["collectors"]
+    assert "Ships no collectors" not in html
+    assert "Collectors not observable" in html
+    # And the failure is isolated: the rest of the page is unaffected.
+    assert "batches" not in ctx["facts"].unobservable
+
+
+def test_failed_batch_read_does_not_claim_no_batches(monkeypatch) -> None:
+    """#13 — the same for batches; 'no batches carry this source' would be unestablished."""
+    from tap_grid.models import Batch
+
+    monkeypatch.setattr(Batch.objects, "filter", _boom)
+    _authorize("tap_admin")
+    ctx = PluginDetailPanelType.get_view_context(_panel(), _request(_OWN))
+    html = _render(PluginDetailPanelType.view, ctx, _panel())
+    assert ctx["facts"].unobservable["batches"]
+    assert "No batches on this grid carry a source naming this plugin" not in html
+    assert "Batches not observable" in html
+    assert "collectors" not in ctx["facts"].unobservable
+
+
+def test_failed_type_catalog_read_is_not_reported_as_unregistered(monkeypatch) -> None:
+    """An unreadable catalog must not accuse every declared type of failing to register."""
+    facts = pf.PluginFacts(slug="alpha", found=True)
+    facts.unobservable["types"] = pf.CATALOG_UNREADABLE
+    reason = pf._absent_reason(registered=False, catalog_readable=False, noun="entity")
+    assert reason == pf.CATALOG_UNREADABLE
+    assert "not registered" not in reason
+    # When the catalog IS readable, the strong claim is allowed again.
+    assert "not registered" in pf._absent_reason(registered=False, catalog_readable=True, noun="entity")
+
+
+def test_failed_run_history_does_not_read_as_never_run(monkeypatch) -> None:
+    """One collector's unreadable history must not render as a collector that never ran."""
+    from tap_grid.models import Edge
+
+    real_filter = Edge.objects.filter
+
+    def selective(*args: object, **kwargs: object) -> object:
+        if kwargs.get("edge_type") == "HAS_COLLECTION_JOB":
+            raise RuntimeError("injected run-history failure")
+        return real_filter(*args, **kwargs)
+
+    monkeypatch.setattr(Edge.objects, "filter", selective)
+    _authorize("tap_admin")
+    collectors, reason = pf._collectors_for(_OWN)
+    assert reason == "", "a per-collector failure must not blank the whole section"
+    for c in collectors:
+        assert not c.runs_observable
+        assert c.last_status_label != "never run"
+        assert "not observable" in c.last_status_label
+
+
+def test_every_unobservable_section_renders_the_shared_third_state() -> None:
+    """One partial states the third state, so no section can invent a quieter version."""
+    html = render_to_string(
+        "administrivia/partials/unobservable.html",
+        {"reason": "the read failed", "noun": "Collectors"},
+    )
+    assert "not observable" in html
+    assert "not because there is nothing here" in html
+    assert "tap-pd__unreadable" in html
