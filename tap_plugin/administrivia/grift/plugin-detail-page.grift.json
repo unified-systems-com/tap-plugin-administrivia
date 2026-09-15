@@ -1,0 +1,129 @@
+{
+  "metadata": {
+    "grift_version": "0"
+  },
+  "_reserved": {},
+  "batches": [
+    {
+      "batch_entity": {
+        "entity_id": "01a0a6be-eabc-7355-8013-12cd88b62eba",
+        "entity_type": "batch",
+        "name": "Plugin detail page v0.1.0",
+        "dimensions": {}
+      },
+      "batch_node": {
+        "source": "plugins.administrivia",
+        "name": "Plugin detail page v0.1.0",
+        "description": "The per-plugin detail page at /administrivia/plugin?slug=<slug>, reached from a row on /administrivia/plugins. Two panels over one derivation (plugin_facts.build_plugin_facts): plugin_detail renders identity, provenance, declared-vs-loaded surfaces, both dependency directions, node and edge types with live counts, collectors, recent batches, GRIFT bundles and boot records; plugin_taxonomy draws the type-level graph the plugin DECLARES \u2014 node types as nodes, declared edge types as directed edges, cross-plugin endpoints distinguished \u2014 with the live counts painted on in three states (a number / declared-never-observed / not observable). Gated above grid.read: the facts route through tap_plugins.report.get_plugin_report(), which authorizes plugins.read in the service layer. The route is a query parameter, not a path segment, because tap_web has no generic path-parameter page route \u2014 the gap is named in req-administrivia-v0-plugin-detail-page. discoverable=false: a per-item page is reached from its parent table, not from navigation."
+      },
+      "nodes": [
+        {
+          "entity": {
+            "entity_id": "01a0a6be-eabc-7355-8013-12ceeeec51ae",
+            "entity_type": "page",
+            "name": "Plugin",
+            "dimensions": {}
+          },
+          "node": {
+            "name": "Plugin",
+            "slug": "/administrivia/plugin",
+            "description": "One installed plugin in detail, with the type-level taxonomy it declares.",
+            "discoverable": false,
+            "nav_weight": 0,
+            "layout": {
+              "columns": {
+                "col-1": {
+                  "width": "1fr",
+                  "rows": {
+                    "row-1": {
+                      "panel-id": "detail"
+                    },
+                    "row-2": {
+                      "panel-id": "taxonomy"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "entity": {
+            "entity_id": "01a0a6be-eabc-7355-8013-12cfcbcb43e2",
+            "entity_type": "panel",
+            "name": "Plugin Detail",
+            "dimensions": {}
+          },
+          "node": {
+            "slug": "plugin-detail",
+            "name": "Plugin Detail",
+            "description": "Identity, provenance, declared-vs-loaded surfaces, both dependency directions, declared types with live counts, collectors, recent batches, GRIFT bundles and boot records for one plugin.",
+            "view": "administrivia/panels/plugin_detail.html",
+            "editor_view": "",
+            "config": {}
+          }
+        },
+        {
+          "entity": {
+            "entity_id": "01a0a6be-eabc-7355-8013-12d0b50e09ce",
+            "entity_type": "panel",
+            "name": "Declared Taxonomy",
+            "dimensions": {}
+          },
+          "node": {
+            "slug": "plugin-taxonomy",
+            "name": "Declared Taxonomy",
+            "description": "The type-level graph this plugin declares \u2014 node types as nodes, declared edge types as directed edges, another plugin's endpoint types distinguished \u2014 with live instance counts painted on. Built from manifest declarations, so it is complete on a grid holding no data at all; a declared type nothing has ever used is drawn dashed rather than omitted.",
+            "view": "administrivia/panels/plugin_taxonomy.html",
+            "editor_view": "",
+            "config": {
+              "height": "560px"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "entity": {
+            "entity_id": "01a0a6be-eabc-7355-8013-12d1bb22e68e",
+            "entity_type": "edge",
+            "name": "USES_PANEL detail",
+            "dimensions": {}
+          },
+          "edge": {
+            "from_entity_id": "01a0a6be-eabc-7355-8013-12ceeeec51ae",
+            "to_entity_id": "01a0a6be-eabc-7355-8013-12cfcbcb43e2",
+            "edge_type": "USES_PANEL",
+            "properties": {
+              "hotlink": {
+                "model": "page",
+                "spec": "page-panels",
+                "value": "detail"
+              }
+            }
+          }
+        },
+        {
+          "entity": {
+            "entity_id": "01a0a6be-eabc-7355-8013-12d2803ec1dd",
+            "entity_type": "edge",
+            "name": "USES_PANEL taxonomy",
+            "dimensions": {}
+          },
+          "edge": {
+            "from_entity_id": "01a0a6be-eabc-7355-8013-12ceeeec51ae",
+            "to_entity_id": "01a0a6be-eabc-7355-8013-12d0b50e09ce",
+            "edge_type": "USES_PANEL",
+            "properties": {
+              "hotlink": {
+                "model": "page",
+                "spec": "page-panels",
+                "value": "taxonomy"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

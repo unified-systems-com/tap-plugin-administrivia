@@ -1,0 +1,12 @@
+{% comment %}
+One count in one of three states (req-administrivia-v0-plugin-facts-4). Shared by every
+table on the plugin detail page so the distinction is rendered identically everywhere —
+a number, a declared-but-never-used type, or a value that could not be observed at all.
+
+"not observable" is NOT zero, and must never be allowed to read as zero. Expects `count`
+(a plugin_facts.CountState).
+{% endcomment %}
+{% if count.is_observed %}<span class="tap-pd__count">{{ count.label }}</span>
+{% elif count.is_never_observed %}<span class="tap-pd__never" title="This type is registered and nothing on this grid has ever used it.">{{ count.label }}</span>
+{% else %}<span class="tap-pd__unobservable" title="{{ count.reason }}">{{ count.label }}</span>
+{% endif %}

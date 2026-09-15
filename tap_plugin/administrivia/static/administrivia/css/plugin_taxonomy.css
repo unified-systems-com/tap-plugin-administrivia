@@ -1,0 +1,102 @@
+/* Plugin Taxonomy panel styles (req-administrivia-v0-plugin-taxonomy-panel).
+ *
+ * The graph itself is styled inside Cytoscape (plugin_taxonomy.js); this file styles the
+ * chrome around it — the stat bar, the stage, the legend, and the "not drawn" disclosure.
+ *
+ * The legend swatches deliberately mirror the Cytoscape stylesheet's colours and border
+ * styles. If one moves, move the other: a legend that has drifted from the drawing is a
+ * declaration that exists and is false.
+ */
+
+.tap-panel--plugin-taxonomy {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    color: #334155;
+    font-size: 13px;
+}
+
+.tap-tax__error {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 14px 16px;
+    background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; color: #7f1d1d;
+}
+.tap-tax__error-mark {
+    flex: none; width: 18px; height: 18px; border-radius: 50%;
+    background: #dc2626; color: #fff; font-weight: 700; font-size: 12px; line-height: 18px; text-align: center;
+}
+.tap-tax__empty {
+    padding: 14px 16px;
+    background: #f8fafc; border: 1px dashed #e2e8f0; border-radius: 8px;
+    color: #94a3b8; font-size: 12.5px; font-style: italic; line-height: 1.6;
+}
+.tap-tax__empty a { color: #1d4ed8; }
+
+/* ---------- stat bar ---------- */
+.tap-tax__bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.tap-tax__stat { color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+.tap-tax__stat strong { color: #1e293b; font-size: 14px; font-weight: 650; }
+.tap-tax__stat--foreign strong { color: #6d43ff; }
+.tap-tax__refit {
+    margin-left: auto;
+    padding: 3px 11px;
+    border: 1px solid #cbd5e1; border-radius: 6px;
+    background: #f8fafc; color: #475569;
+    font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.tap-tax__refit:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+/* ---------- stage ---------- */
+.tap-tax__stage {
+    position: relative;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background:
+        radial-gradient(circle at 1px 1px, #e8e8e4 1px, transparent 0) 0 0 / 18px 18px,
+        #fbfbfa;
+    overflow: hidden;
+}
+.tap-tax__canvas { width: 100%; height: 100%; }
+
+/* ---------- legend ---------- */
+.tap-tax__legend {
+    position: absolute;
+    left: 10px; bottom: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 9px 11px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.07);
+    font-size: 11px;
+    max-width: 260px;
+}
+.tap-tax__legend-h {
+    color: #94a3b8; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+}
+.tap-tax__legend-item { display: flex; align-items: center; gap: 7px; color: #475569; cursor: help; }
+.tap-tax__swatch { flex: none; width: 15px; height: 11px; border-radius: 3px; border: 1.5px solid #334155; background: #e2e8f0; }
+.tap-tax__swatch--own { background: #e2e8f0; border-color: #334155; }
+.tap-tax__swatch--foreign { background: #ece9fe; border-color: #7c5cff; }
+.tap-tax__swatch--observed { background: #e2e8f0; border-color: #334155; }
+.tap-tax__swatch--never_observed { background: #f5f3ef; border-style: dashed; border-color: #b45309; }
+.tap-tax__swatch--not_observable { background: #fafafa; border-style: dotted; border-color: #cbd5e1; }
+
+/* ---------- not-drawn disclosure ---------- */
+.tap-tax__unplaced {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px;
+    color: #92400e; font-size: 12px; line-height: 1.6;
+}
+.tap-tax__unplaced ul { margin: 6px 0 6px 18px; padding: 0; list-style: disc; }
+.tap-tax__unplaced code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; background: #fef3c7; border-radius: 3px; padding: 0 4px;
+}

@@ -1,0 +1,65 @@
+{% comment %}
+Plugin Taxonomy panel (req-administrivia-v0-plugin-taxonomy-panel).
+
+A type-level graph: the nodes are node TYPES, the edges are declared edge TYPES. It is
+built from manifest declarations, so it draws correctly on a grid holding nothing at all.
+Live instance counts are painted on top in three states.
+
+Presentation only — the element list is synthesized server-side by the panel type. The
+inline script does nothing but hand it to Cytoscape (vendored by tap_viz).
+{% endcomment %}
+<div class="tap-panel tap-panel--plugin-taxonomy">
+    {% if not panel.config.hide_header %}{% include "tap_web/panel_header.html" %}{% endif %}
+
+    {% if graph_error %}
+        <div class="tap-tax__error"><span class="tap-tax__error-mark" aria-hidden="true">!</span><span>{{ graph_error }}</span></div>
+    {% elif empty_message %}
+        <div class="tap-tax__empty">{{ empty_message }}</div>
+    {% elif has_graph %}
+
+    <div class="tap-tax__bar">
+        <span class="tap-tax__stat"><strong>{{ node_type_count }}</strong> node type{{ node_type_count|pluralize }}</span>
+        <span class="tap-tax__stat"><strong>{{ edge_type_count }}</strong> edge type{{ edge_type_count|pluralize }}</span>
+        {% if foreign_count %}<span class="tap-tax__stat tap-tax__stat--foreign"><strong>{{ foreign_count }}</strong> foreign endpoint{{ foreign_count|pluralize }}</span>{% endif %}
+        <button type="button" class="tap-tax__refit" data-tax-refit="{{ panel.entity_id }}" title="Re-fit the graph to the panel">Re-fit</button>
+    </div>
+
+    <div class="tap-tax__stage" style="height: {{ graph_height }};">
+        <div id="tap-tax-graph-{{ panel.entity_id }}" class="tap-tax__canvas"></div>
+        <div class="tap-tax__legend" role="note">
+            <span class="tap-tax__legend-h">Legend</span>
+            {% for item in legend %}
+            <span class="tap-tax__legend-item" title="{{ item.hint }}">
+                <span class="tap-tax__swatch tap-tax__swatch--{{ item.key }}" aria-hidden="true"></span>{{ item.label }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if unplaced %}
+    <div class="tap-tax__unplaced">
+        <strong>Not drawn.</strong>
+        {{ unplaced|length }} declared edge type{{ unplaced|length|pluralize }} could not be placed on the graph:
+        <ul>
+            {% for u in unplaced %}<li><code>{{ u.slug }}</code> — {{ u.reason }}</li>{% endfor %}
+        </ul>
+        These are listed rather than silently omitted: an edge missing from the picture must never
+        read as an edge the plugin does not declare.
+    </div>
+    {% endif %}
+
+    {{ elements|json_script:graph_script_id }}
+    <script>
+    (function () {
+        var panelId = "{{ panel.entity_id }}";
+        function go() { if (window.TapPluginTaxonomy) { window.TapPluginTaxonomy.init(panelId); } }
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", go);
+        } else { go(); }
+    })();
+    </script>
+
+    {% else %}
+        <p class="tap-tax__empty">No plugin selected. Open this page from a row on <a href="/administrivia/plugins">Plugins</a>.</p>
+    {% endif %}
+</div>
