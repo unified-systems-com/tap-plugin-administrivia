@@ -42,6 +42,7 @@ from tap_plugin.administrivia.plugin_facts import (
     TypeFact,
     build_plugin_facts,
     foreign_node_facts,
+    normalize_slug,
 )
 
 from tap_auth.errors import AuthzError
@@ -225,7 +226,12 @@ class PluginTaxonomyPanelType:
 
     @classmethod
     def get_view_context(cls, panel: Panel, request: HttpRequest) -> dict[str, Any]:
-        slug = request.GET.get("slug", "").strip()
+        # `build_plugin_facts` owns slug validation (one derivation); `safe` is the
+        # normalized value — a known-shape identifier or empty — and is the ONLY form
+        # that reaches a log record. Arbitrary request text never does: an unconstrained
+        # value in a log line lets a caller forge entries (Sonar S5145).
+        raw = request.GET.get("slug", "")
+        safe = normalize_slug(raw)
         height = _height((panel.config or {}).get("height", _DEFAULT_HEIGHT))
         # One context shape on every path (see plugin_detail._EMPTY for why).
         base: dict[str, Any] = {
@@ -239,12 +245,12 @@ class PluginTaxonomyPanelType:
         }
 
         try:
-            facts = build_plugin_facts(slug)
+            facts = build_plugin_facts(raw)
         except AuthzError:
             # A refusal is a 403, not a broken panel. See the note in plugin_detail.
             raise
         except Exception as exc:  # noqa: BLE001 — a panel must never take the page down
-            logger.exception("[6580] taxonomy facts failed for slug %r", slug)
+            logger.exception("[6580] taxonomy facts failed for slug %s", safe or "(invalid)")
             return {**base, "graph_error": f"{type(exc).__name__}: {exc}"}
 
         if not facts.found:
@@ -263,7 +269,7 @@ class PluginTaxonomyPanelType:
         try:
             built = _build_elements(facts)
         except Exception as exc:  # noqa: BLE001
-            logger.exception("[0502] taxonomy element build failed for slug %r", slug)
+            logger.exception("[0502] taxonomy element build failed for slug %s", safe or "(invalid)")
             return {**base, "graph_error": f"{type(exc).__name__}: {exc}"}
 
         return {

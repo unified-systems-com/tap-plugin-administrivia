@@ -152,10 +152,42 @@ def test_detail_panel_renders_an_installed_plugin() -> None:
 
 def test_detail_panel_names_an_uninstalled_plugin_rather_than_raising() -> None:
     _authorize("tap_admin")
-    ctx = PluginDetailPanelType.get_view_context(_panel(), _request("not-a-real-plugin"))
+    ctx = PluginDetailPanelType.get_view_context(_panel(), _request("notarealplugin"))
     assert ctx["plugin"] is None
-    assert "not-a-real-plugin" in ctx["detail_error"]
-    assert "not-a-real-plugin" in _render(PluginDetailPanelType.view, ctx, _panel())
+    assert "notarealplugin" in ctx["detail_error"]
+    assert "notarealplugin" in _render(PluginDetailPanelType.view, ctx, _panel())
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "not-a-real-plugin",              # hyphens are not AppConfig labels
+        "../../etc/passwd",
+        "zizmor\nWARNING forged log line",  # the log-forging shape (Sonar S5145)
+        "a" * 200,
+        "9leading_digit",
+    ],
+)
+def test_a_malformed_slug_is_refused_and_never_echoed_back(bad: str) -> None:
+    """A slug is an identifier, not free text — and a rejected one is never reflected.
+
+    Guards both halves of the boundary: `normalize_slug` refuses the value, and the
+    message the page renders does not contain it, so nothing user-controlled reaches the
+    page or a log record.
+    """
+    assert pf.normalize_slug(bad) == ""
+    _authorize("tap_admin")
+    ctx = PluginDetailPanelType.get_view_context(_panel(), _request(bad))
+    assert ctx["plugin"] is None
+    assert ctx["detail_error"]
+    assert bad not in ctx["detail_error"]
+    assert bad.strip() not in _render(PluginDetailPanelType.view, ctx, _panel())
+
+
+def test_a_wellformed_slug_survives_normalization() -> None:
+    """The validator must not reject the slugs that actually exist."""
+    for good in ("zizmor", "github_core", "git_serious_double_tap", _OWN):
+        assert pf.normalize_slug(good) == good
 
 
 def test_detail_panel_with_no_slug_is_a_state_not_a_crash() -> None:

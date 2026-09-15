@@ -45,6 +45,7 @@ Spec: specs/spec-administrivia-v0.md req-administrivia-v0-plugin-facts.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -58,6 +59,20 @@ logger = logging.getLogger(__name__)
 OBSERVED = "observed"
 NEVER_OBSERVED = "never_observed"
 NOT_OBSERVABLE = "not_observable"
+
+# A plugin slug is a Django AppConfig label: an identifier, never free text. Both panels
+# take it straight off the query string, so it is validated HERE — once — before it reaches
+# a query, a log line or a message. Anything else is refused as a bad slug rather than
+# passed along: an unconstrained value in a log record lets a caller forge log entries
+# (Sonar S5145), and the cheap edge is to never let the value through in the first place.
+_SLUG_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$", re.IGNORECASE)
+
+
+def normalize_slug(raw: str) -> str:
+    """Return `raw` if it is a syntactically valid plugin slug, else the empty string."""
+    candidate = (raw or "").strip()
+    return candidate if _SLUG_RE.match(candidate) else ""
+
 
 # How many batches the detail page shows. A plugin with a busy collector produces
 # thousands; the page wants the recent shape, not the archive.
@@ -435,10 +450,16 @@ def build_plugin_facts(slug: str) -> PluginFacts:
     from tap_grid.models import EntityType
     from tap_plugins.report import get_plugin_report
 
-    facts = PluginFacts(slug=slug)
+    safe = normalize_slug(slug)
+    facts = PluginFacts(slug=safe)
     if not slug:
         facts.error = "No plugin selected."
         return facts
+    if not safe:
+        # Never echo the rejected value back — not into the page, not into a log line.
+        facts.error = "That is not a valid plugin slug. Open this page from a row on the plugins table."
+        return facts
+    slug = safe
 
     report = get_plugin_report()
     record = next((p for p in report["plugins"] if p["slug"] == slug), None)

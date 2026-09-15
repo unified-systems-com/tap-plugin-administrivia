@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from tap_plugin.administrivia.plugin_facts import build_plugin_facts
+from tap_plugin.administrivia.plugin_facts import build_plugin_facts, normalize_slug
 
 from tap_auth.errors import AuthzError
 
@@ -130,9 +130,14 @@ class PluginDetailPanelType:
 
     @classmethod
     def get_view_context(cls, panel: Panel, request: HttpRequest) -> dict[str, Any]:
-        slug = request.GET.get("slug", "").strip()
+        # `build_plugin_facts` owns slug validation (one derivation); `safe` is the
+        # normalized value — a known-shape identifier or empty — and is the ONLY form
+        # that reaches a log record. Arbitrary request text never does: an unconstrained
+        # value in a log line lets a caller forge entries (Sonar S5145).
+        raw = request.GET.get("slug", "")
+        safe = normalize_slug(raw)
         try:
-            facts = build_plugin_facts(slug)
+            facts = build_plugin_facts(raw)
         except AuthzError:
             # Never disguise a refusal as a render failure. tap_web.views.panel_view
             # re-raises AuthzError for exactly this reason, and tap_auth's middleware
@@ -140,7 +145,7 @@ class PluginDetailPanelType:
             # "something went wrong" over a working authorization decision.
             raise
         except Exception as exc:  # noqa: BLE001 — a panel must never take the page down
-            logger.exception("[84f9] plugin detail facts failed for slug %r", slug)
+            logger.exception("[84f9] plugin detail facts failed for slug %s", safe or "(invalid)")
             return {**_EMPTY, "detail_error": f"{type(exc).__name__}: {exc}"}
 
         if not facts.found:
