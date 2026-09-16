@@ -154,3 +154,8 @@
     border: 1px solid #e2e8f0;
     font-size: 12px;
 }
+
+/* The table sits on a sheet a shade off the canvas — translucent white, hairline, small radius — so it
+   reads as an object on the page rather than rows painted on the background (George, 2026-09-10; tap's
+   canvas is taupe since tap PR# 414 and the standard tables got the same sheet). */
+.tap-cares-schedules__table-wrap { background: rgba(255, 255, 255, .55); border: 1px solid rgba(128, 128, 128, .22); border-radius: 3px; }
