@@ -32,7 +32,17 @@ logger = logging.getLogger(__name__)
 # reference the flat row dicts built in _row_for_plugin. quick_filter searches across
 # these fields, so depends_on/required_by are joined strings (searchable + readable).
 _COLUMNS: list[dict[str, Any]] = [
-    {"title": "Plugin", "field": "slug", "widthGrow": 1, "tooltip": "full_value"},
+    # The row is no longer a dead end: the slug links to the plugin's detail page
+    # (req-administrivia-v0-plugin-detail-page-2). `external: false` keeps it in-tab —
+    # this is a same-origin path, not an outbound link.
+    {
+        "title": "Plugin",
+        "field": "slug",
+        "widthGrow": 1,
+        "tooltip": "full_value",
+        "formatter": "link",
+        "formatter_params": {"href_template": "/administrivia/plugin?slug={slug}", "external": False},
+    },
     {"title": "Name", "field": "name", "widthGrow": 1},
     {"title": "Version", "field": "version", "width": 110, "tooltip": "full_value"},
     {"title": "Source", "field": "source", "width": 90},

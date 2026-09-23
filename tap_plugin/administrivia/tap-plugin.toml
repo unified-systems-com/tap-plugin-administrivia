@@ -13,6 +13,7 @@ cares-administrivia-v04 = "grift/cares-administrivia-v04.grift.json"
 batch-viewer-page = "grift/batch-viewer-page.grift.json"
 batches-list-page = "grift/batches-list-page.grift.json"
 plugins-page = "grift/plugins-page.grift.json"
+plugin-detail-page = "grift/plugin-detail-page.grift.json"
 
 [[boot.records]]
 name = "ci"

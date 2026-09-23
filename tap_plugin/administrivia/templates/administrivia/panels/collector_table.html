@@ -1,4 +1,4 @@
-{% load static %}
+{% load static %}{% load tap_time %}
 <div class="tap-panel tap-panel--cares-collectors"
      hx-get="/panel/{{ panel.slug }}--{{ panel.entity_id }}/"
      hx-trigger="every 5s"
@@ -32,7 +32,7 @@
         <div class="tap-cares-summary__tile">
             <div class="tap-cares-summary__label">Last success</div>
             <div class="tap-cares-summary__value">
-                {% if collector_summary.last_success_at %}{{ collector_summary.last_success_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}
+                {% if collector_summary.last_success_at %}{{ collector_summary.last_success_at|tap_localtime }}{% else %}—{% endif %}
             </div>
         </div>
     </div>
@@ -79,7 +79,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if row.last_run_at %}{{ row.last_run_at|date:"Y-m-d H:i:s" }}{% else %}—{% endif %}
+                        {% if row.last_run_at %}{{ row.last_run_at|tap_localtime }}{% else %}—{% endif %}
                     </td>
                     <td class="tap-cares-collectors__summary" title="{{ row.last_summary }}">
                         {{ row.last_summary|truncatechars:80|default:"—" }}

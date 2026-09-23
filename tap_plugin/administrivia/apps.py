@@ -9,6 +9,15 @@ class AdministriviaConfig(TapPluginConfig):
 
         # CARES Administrivia panels (req-tap-cares-administrivia-* in
         # tap_cares/specs/spec-tap-cares-administrivia.md).
+        from tap_plugin.administrivia.panels.plugin_detail import (
+            PluginDetailPanelType,
+        )
+        from tap_plugin.administrivia.panels.plugin_status import (
+            PluginStatusPanelType,
+        )
+        from tap_plugin.administrivia.panels.plugin_taxonomy import (
+            PluginTaxonomyPanelType,
+        )
         from tap_plugin.administrivia.tap_cares.panels.collector_detail import (
             CollectorDetailPanelType,
         )
@@ -24,12 +33,14 @@ class AdministriviaConfig(TapPluginConfig):
         from tap_plugin.administrivia.tap_cares.panels.schedule_table import (
             ScheduleTablePanelType,
         )
-        from tap_plugin.administrivia.panels.plugin_status import (
-            PluginStatusPanelType,
-        )
+
         from tap_web.registry import panel_type_registry
 
         panel_type_registry.register("plugin_status", PluginStatusPanelType)
+        # The other half of the plugins page: one plugin in detail, and the type-level
+        # graph it declares (req-administrivia-v0-plugin-detail-panel / -taxonomy-panel).
+        panel_type_registry.register("plugin_detail", PluginDetailPanelType)
+        panel_type_registry.register("plugin_taxonomy", PluginTaxonomyPanelType)
         panel_type_registry.register(
             "cares_collector_table", CollectorTablePanelType
         )
